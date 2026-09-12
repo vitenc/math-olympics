@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MathXCEL 2024 — Богдан</title>
+<link rel="stylesheet" href="assets/quiz.css">
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <span class="l1">M</span><span class="l3">a</span><span class="l4">t</span><span class="l5">h</span><span class="l2">X</span><span class="l1">C</span><span class="l3">E</span><span class="l4">L</span>
+  </div>
+  <div class="sub">работа 2024 · 3 класс · <span id="who"></span></div>
+  <h2 id="ttl">MathXCEL 2024</h2>
+  <div class="crumb"><a href="index.html">← весь план</a></div>
+  <div id="timer" class="timer" style="display:none">⏱ 80:00</div>
+  <div class="pbar"><div class="pfill" id="pf"></div></div>
+  <div class="scores">
+    <span class="s-ok" id="cO"></span>
+    <span class="s-no" id="cN"></span>
+    <span class="s-pt" id="cP"></span>
+  </div>
+</div>
+
+<div class="container">
+  <div id="gate">
+    <div id="rules"></div>
+
+    <div class="note">
+      <h3>Чем MathXCEL отличается от SASMO — и почему тактика тут другая</h3>
+      <ul>
+        <li><b>Штрафов нет нигде.</b> В SASMO за неверный ответ в секции A снимают балл,
+            и там выгодно пропускать. Здесь пропуск и ошибка стоят одинаково — ноль.
+            Значит <i>пустых клеток быть не должно ни одной</i>.</li>
+        <li><b>80 минут, а не 90</b>, и задач столько же. Времени на задачу меньше:
+            не застревай, помечай трудную и иди дальше.</li>
+        <li><b>Часть 2 — только целые положительные числа.</b> Получилась дробь или
+            минус — где-то ошибка, стоит перечитать условие.</li>
+      </ul>
+    </div>
+
+    <div id="attempt"></div>
+    <div style="text-align:center">
+      <button class="btn" id="startBtn">▶ Начать работу (80 минут)</button>
+      <button class="btn sec" id="practiceBtn">📖 Прорешать без таймера</button>
+    </div>
+    <p class="hint-line">Без таймера ответ проверяется сразу и есть подсказка —
+      так работу разбирают после экзамена или готовятся к ней спокойно.
+      Баллы считаются только в режиме с таймером.</p>
+  </div>
+
+  <div id="box"></div>
+</div>
+
+<script src="assets/fig.js"></script>
+<script src="assets/quiz.js"></script>
+<script src="assets/paper.js"></script>
+<script>
+  /* Страница отличается от страницы второго решающего только этим:
+     у каждого свой прогресс и свой журнал ошибок. Задачи — общие,
+     из data/mathxcel24.js. */
+  SASMO_PAPER.open({
+    who: 'bogdan',
+    set: 'mathxcel24',
+    varName: 'MATHXCEL24',
+    minutes: 80
+  });
+</script>
+</body>
+</html>

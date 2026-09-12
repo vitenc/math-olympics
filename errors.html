@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SASMO — работа над ошибками</title>
+<link rel="stylesheet" href="assets/quiz.css">
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <span class="l1">S</span><span class="l2">A</span><span class="l3">S</span><span class="l4">M</span><span class="l5">O</span>
+  </div>
+  <div class="sub">журнал ошибок</div>
+  <h2>Работа над ошибками</h2>
+  <div class="crumb"><a href="index.html">← весь план</a></div>
+  <div class="pbar"><div class="pfill" id="pf"></div></div>
+  <div class="scores">
+    <span class="s-ok" id="cO">0 верно</span>
+    <span class="s-no" id="cN">0 неверно</span>
+    <span class="s-pt" id="cP"></span>
+  </div>
+</div>
+
+<div class="container">
+  <div id="intro"></div>
+  <div id="box"></div>
+</div>
+
+<script src="assets/plan.js"></script>
+<script src="assets/plan2.js"></script>
+<script src="assets/fig.js"></script>
+<script src="assets/quiz.js"></script>
+<script src="assets/paper.js"></script>
+<script>
+(function () {
+  var params = new URLSearchParams(location.search);
+
+  /* У отдельных работ журнал свой у каждого решающего: за ними сидят разные
+     дети, и ошибки одного не должны попадаться другому. ?who=… и выбирает,
+     чей журнал открыть; без него — общий журнал класса. */
+  var who = params.get('who');
+  var solver = who ? window.SOLVERS[who] : null;
+  var hub, back, hubLabel;
+
+  if (solver) {
+    SASMO.usePlan({
+      keys: SASMO_PAPER.keys(who),
+      hubHref: solver.paper,
+      errorsHref: 'errors.html?who=' + who
+    });
+    hub = solver.paper;
+    back = '← к работе';
+    hubLabel = 'К работе';
+    document.querySelector('.sub').textContent = 'журнал ошибок · ' + solver.name;
+    document.querySelector('h2').textContent = 'Работа над ошибками — ' + solver.name;
+    document.title = 'Работа над ошибками — ' + solver.name;
+  } else {
+    var PLAN = window.PLANS[params.get('g') === '2' ? 2 : 3];
+    SASMO.usePlan(PLAN);
+    hub = 'index.html' + (PLAN.grade === 3 ? '' : '?g=' + PLAN.grade);
+    back = '← весь план';
+    hubLabel = 'К плану';
+  }
+
+  var crumb = document.querySelector('.crumb');
+  if (crumb) crumb.innerHTML = '<a href="' + hub + '">' + back + '</a>';
+
+  var errors = SASMO.getErrors();
+  var box = document.getElementById('box');
+  var intro = document.getElementById('intro');
+
+  if (!errors.length) {
+    intro.innerHTML =
+      '<div class="empty">Журнал пуст — ошибок пока нет.<br>' +
+      'Он заполнится сам, когда ребёнок ошибётся в задаче.<br><br>' +
+      '<a class="btn" href="' + hub + '">' + hubLabel + '</a></div>';
+    return;
+  }
+
+  // Разбитые по темам — видно, какая тема проседает
+  var byTopic = {};
+  errors.forEach(function (e) {
+    var t = e.topic || 'Прочее';
+    byTopic[t] = (byTopic[t] || 0) + 1;
+  });
+  var rows = Object.keys(byTopic).sort(function (a, b) {
+    return byTopic[b] - byTopic[a];
+  }).map(function (t) {
+    return '<li><b>' + byTopic[t] + '</b> — ' + t + '</li>';
+  }).join('');
+
+  intro.innerHTML =
+    '<div class="note warm">' +
+      '<h3>В журнале ' + errors.length + ' задач(и)</h3>' +
+      '<p style="margin-bottom:.3rem">Решённая заново задача уходит из журнала. ' +
+      'Ошибка остаётся — значит, тему надо разобрать ещё раз.</p>' +
+      '<ul>' + rows + '</ul>' +
+      '<p style="margin-top:.4rem"><b>Самая слабая тема сверху.</b> ' +
+      'Именно ей стоит отдать ближайшие 10 минут занятия.</p>' +
+    '</div>';
+
+  // Старые ошибки — вперёд: они успели забыться сильнее.
+  var questions = errors.slice().sort(function (a, b) { return a.ts - b.ts; });
+
+  SASMO.run({
+    mount: box,
+    questions: questions,
+    mode: 'practice',
+    setId: 'errors'
+  });
+})();
+</script>
+</body>
+</html>

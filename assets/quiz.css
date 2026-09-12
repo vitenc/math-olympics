@@ -1,0 +1,448 @@
+/* ==========================================================================
+   SASMO Grade 3 — общие стили тренажёра
+   Визуальный язык унаследован от copernicus.html, чтобы ребёнку было привычно.
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+
+:root {
+  --red: #c0392b;
+  --green: #27ae60;
+  --green-bg: #e8f8f0;
+  --wrong-red: #e74c3c;
+  --wrong-bg: #fbeaea;
+  --blue: #2980b9;
+  --amber: #f39c12;
+  --purple: #8e44ad;
+  --bg: #d8d8d8;
+  --text: #1a1a1a;
+  --muted: #555;
+  --card: rgba(255,255,255,.88);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Nunito', sans-serif;
+  color: var(--text);
+  line-height: 1.55;
+  min-height: 100vh;
+  background-color: var(--bg);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='500' height='500' opacity='.07'%3E%3Ctext x='15' y='35' font-size='20' font-family='serif' fill='%23333'%3Ex%C2%B2+y%C2%B2%3C/text%3E%3Ctext x='180' y='70' font-size='17' font-family='serif' fill='%23333'%3E%CF%80r%C2%B2%3C/text%3E%3Ctext x='350' y='45' font-size='19' fill='%23333'%3E%E2%88%9A2%3C/text%3E%3Ctext x='70' y='120' font-size='22' fill='%23333'%3E%CE%A3%3C/text%3E%3Ctext x='260' y='130' font-size='15' fill='%23333'%3Ea%C2%B2%2Bb%C2%B2%3Dc%C2%B2%3C/text%3E%3Ctext x='440' y='110' font-size='18' fill='%23333'%3E%C3%B7%3C/text%3E%3Ctext x='40' y='200' font-size='17' fill='%23333'%3E3.14%3C/text%3E%3Ctext x='220' y='210' font-size='21' fill='%23333'%3E%E2%88%9E%3C/text%3E%3Ctext x='400' y='195' font-size='15' fill='%23333'%3Ef(x)%3C/text%3E%3Ctext x='100' y='290' font-size='19' fill='%23333'%3E%C2%B1%3C/text%3E%3Ctext x='310' y='300' font-size='17' fill='%23333'%3E%25%3C/text%3E%3Ctext x='460' y='280' font-size='21' fill='%23333'%3E%CE%94%3C/text%3E%3Ctext x='25' y='370' font-size='15' fill='%23333'%3E2%C3%975%3C/text%3E%3Ctext x='200' y='380' font-size='19' fill='%23333'%3E%E2%88%AB%3C/text%3E%3Ctext x='380' y='360' font-size='17' fill='%23333'%3E45%C2%B0%3C/text%3E%3Ctext x='80' y='450' font-size='21' fill='%23333'%3E%E2%89%A5%3C/text%3E%3Ctext x='270' y='460' font-size='15' fill='%23333'%3E7%C3%978%3C/text%3E%3Ctext x='430' y='440' font-size='19' fill='%23333'%3E%CE%B1%CE%B2%3C/text%3E%3Ccircle cx='140' cy='155' r='25' fill='none' stroke='%23333' stroke-width='1.2'/%3E%3Cpolygon points='240,240 260,280 220,280' fill='none' stroke='%23333' stroke-width='1.2'/%3E%3Crect x='340' y='320' width='35' height='35' fill='none' stroke='%23333' stroke-width='1.2' rx='2'/%3E%3C/svg%3E");
+}
+
+/* ===== ШАПКА ===== */
+.header {
+  background: rgba(255,255,255,.92);
+  backdrop-filter: blur(6px);
+  border-bottom: 3px solid #ccc;
+  padding: .8rem 1rem .7rem;
+  text-align: center;
+  position: sticky; top: 0; z-index: 100;
+}
+.logo {
+  display: flex; justify-content: center; align-items: center;
+  gap: 1px; font-size: 1.8rem; font-weight: 900; letter-spacing: 1px; line-height: 1;
+}
+.logo span { display: inline-block; }
+.l1 { color: #c0392b; }
+.l2 { color: #fff; background: #f39c12; border-radius: 50%; width: 31px; height: 31px; display: inline-flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+.l3 { color: #2980b9; }
+.l4 { color: #8e44ad; }
+.l5 { color: #27ae60; }
+
+.sub { font-size: .68rem; font-weight: 700; color: #999; letter-spacing: 3px; text-transform: uppercase; margin-bottom: .25rem; }
+.header h2 { font-size: .95rem; font-weight: 800; }
+.header .crumb { font-size: .75rem; font-weight: 700; margin-top: .2rem; }
+.header .crumb a { color: var(--blue); text-decoration: none; }
+.header .crumb a:hover { text-decoration: underline; }
+
+.pbar { width: 100%; max-width: 500px; height: 7px; background: #ddd; border-radius: 4px; margin: .5rem auto 0; overflow: hidden; }
+.pfill { height: 100%; background: linear-gradient(90deg, #f39c12, #e74c3c); border-radius: 4px; transition: width .4s; width: 0%; }
+.scores { display: flex; justify-content: center; flex-wrap: wrap; gap: 1.1rem; margin-top: .35rem; font-size: .78rem; font-weight: 700; }
+.s-ok { color: var(--green); }
+.s-no { color: var(--red); }
+.s-pt { color: var(--blue); }
+
+/* таймер экзамена */
+.timer {
+  display: inline-block; margin-top: .4rem; padding: .25rem 1rem; border-radius: 8px;
+  font-size: 1.25rem; font-weight: 900; font-variant-numeric: tabular-nums;
+  background: #eef4f9; color: var(--blue); border: 2px solid #cfe0ee;
+}
+.timer.warn { background: #fff6e5; color: #b9770e; border-color: #f5cd79; }
+.timer.crit { background: var(--wrong-bg); color: var(--wrong-red); border-color: #f0b2ad; animation: pulse 1s infinite; }
+@keyframes pulse { 50% { opacity: .55; } }
+
+/* ===== КОНТЕЙНЕР ===== */
+.container { max-width: 1000px; margin: 0 auto; padding: 1rem .8rem 3rem; }
+
+/* ===== ПЛАШКИ ===== */
+.motto {
+  border: 3px solid var(--red); border-radius: 12px; padding: .8rem 1rem;
+  text-align: center; margin-bottom: 1rem; background: rgba(255,255,255,.85);
+  font-weight: 700; font-size: .9rem;
+}
+.motto em { display: block; font-style: italic; color: var(--red); margin-bottom: .2rem; }
+
+.note {
+  background: rgba(255,255,255,.85); border-left: 5px solid var(--blue);
+  border-radius: 10px; padding: .8rem 1rem; margin-bottom: 1rem; font-size: .88rem;
+}
+.note h3 { font-size: .95rem; color: var(--blue); margin-bottom: .3rem; }
+.note ul { margin: .3rem 0 0 1.1rem; }
+.note li { margin-bottom: .15rem; }
+.note.warm { border-left-color: var(--amber); }
+.note.warm h3 { color: #b9770e; }
+
+/* разделитель секций экзамена */
+.sect {
+  margin: 1.4rem 0 .8rem; padding: .5rem .9rem; border-radius: 10px;
+  background: rgba(41,128,185,.12); border: 2px dashed #9dc2dd;
+  font-weight: 800; font-size: .9rem; color: #1f5f8b;
+}
+.sect small { display: block; font-weight: 700; color: var(--muted); font-size: .78rem; }
+
+/* ===== КАРТОЧКА ЗАДАЧИ ===== */
+.qcard {
+  display: flex; gap: 1rem; background: var(--card); border-radius: 14px;
+  padding: 1.1rem; margin-bottom: 1rem; border: 2px solid transparent;
+  box-shadow: 0 2px 10px rgba(0,0,0,.06);
+  transition: border-color .3s, background .3s; align-items: flex-start;
+}
+.qcard.ok { border-color: var(--green); background: var(--green-bg); }
+.qcard.no { border-color: var(--wrong-red); background: var(--wrong-bg); }
+.qcard.done .opt { pointer-events: none; }
+
+.q-left { flex: 1; min-width: 0; }
+.q-right {
+  flex: 0 0 320px; max-width: 320px; border-radius: 8px; overflow: hidden;
+  border: 1px solid #ccc; background: #fff; box-shadow: 0 1px 6px rgba(0,0,0,.08);
+}
+.q-right img { display: block; width: 100%; height: auto; }
+
+@media (max-width: 860px) {
+  .qcard { flex-direction: column; }
+  .q-right { flex: none; max-width: 100%; align-self: center; }
+}
+
+.qn { color: var(--red); font-weight: 900; font-size: 1.1rem; margin-right: .4rem; }
+.qh { display: flex; align-items: flex-start; margin-bottom: .6rem; }
+.qt { font-size: .95rem; font-weight: 700; padding-top: 1px; }
+
+/* дроби */
+.fr { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; margin: 0 3px; font-size: .82em; line-height: 1.1; }
+.fr .n { border-bottom: 2px solid var(--text); padding: 0 4px 1px; }
+.fr .d { padding: 1px 4px 0; }
+.fo { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; line-height: 1.1; font-size: .88em; }
+.fo .n { border-bottom: 2px solid currentColor; padding: 0 3px 1px; }
+.fo .d { padding: 1px 3px 0; }
+
+/* таблица внутри условия: пиктограммы, прайсы, «сколько чего продали» */
+.qtable {
+  border-collapse: collapse; margin: .6rem 0; font-size: .88rem;
+  background: rgba(255,255,255,.6); border-radius: 8px; overflow: hidden;
+}
+.qtable th, .qtable td { border: 1px solid #c9c9c9; padding: .3rem .7rem; text-align: left; }
+.qtable th { background: rgba(0,0,0,.06); font-weight: 800; }
+.qtable td:last-child, .qtable th:last-child { text-align: center; }
+
+/* моноширинный блок: столбики, криптарифмы, схемы */
+.mono {
+  font-family: 'Courier New', monospace; font-weight: 700; font-size: 1rem;
+  background: rgba(0,0,0,.05); border-radius: 8px; padding: .6rem .9rem;
+  margin: .5rem 0; display: inline-block; white-space: pre; line-height: 1.35;
+  overflow-x: auto; max-width: 100%;
+}
+
+/* ===== ВАРИАНТЫ ОТВЕТА ===== */
+.opts { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; }
+@media (max-width: 500px) { .opts { grid-template-columns: 1fr; } }
+
+.opt {
+  display: flex; align-items: center; padding: .6rem .8rem;
+  border: 2px solid #ccc; border-radius: 10px; cursor: pointer;
+  transition: all .2s; font-weight: 700; font-size: .9rem;
+  background: rgba(255,255,255,.55); user-select: none;
+}
+.opt:hover { border-color: var(--red); background: #fff; transform: translateY(-1px); }
+.opt .lt { color: var(--red); font-weight: 900; font-size: .95rem; margin-right: .6rem; min-width: 18px; }
+.opt.cok { border-color: var(--green); background: var(--green-bg); }
+.opt.cok .lt { color: var(--green); }
+.opt.cno { border-color: var(--wrong-red); background: var(--wrong-bg); text-decoration: line-through; opacity: .65; }
+.opt.cno .lt { color: var(--wrong-red); }
+
+/* ===== ОТКРЫТЫЙ ОТВЕТ (секция B) ===== */
+.open-row { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+.open-in {
+  font-family: inherit; font-size: 1.05rem; font-weight: 800; text-align: center;
+  width: 130px; padding: .5rem .6rem; border: 2px solid #ccc; border-radius: 10px;
+  background: rgba(255,255,255,.75); color: var(--text);
+}
+.open-in:focus { outline: none; border-color: var(--blue); background: #fff; }
+.open-in.cok { border-color: var(--green); background: var(--green-bg); }
+.open-in.cno { border-color: var(--wrong-red); background: var(--wrong-bg); }
+.open-row .hintmsg { font-size: .8rem; color: var(--muted); font-weight: 700; }
+
+.mini {
+  padding: .5rem 1rem; border: 2px solid #ccc; border-radius: 10px; cursor: pointer;
+  font-family: inherit; font-weight: 800; font-size: .85rem;
+  background: rgba(255,255,255,.7); color: var(--text); transition: all .2s;
+}
+.mini:hover { border-color: var(--blue); color: var(--blue); background: #fff; }
+.mini.ghost { border-style: dashed; color: var(--muted); }
+
+.qactions { margin-top: .55rem; display: flex; gap: .5rem; flex-wrap: wrap; }
+
+/* ===== ПОДСКАЗКА И РАЗБОР ===== */
+.hint {
+  display: none; margin-top: .6rem; padding: .55rem .8rem;
+  background: rgba(243,156,18,.13); border-radius: 8px;
+  font-size: .85rem; border-left: 3px solid var(--amber); font-weight: 600;
+}
+.hint.vis { display: block; }
+
+.expl {
+  display: none; margin-top: .6rem; padding: .55rem .8rem;
+  background: rgba(0,0,0,.04); border-radius: 8px;
+  font-size: .84rem; color: var(--muted); border-left: 3px solid var(--green);
+}
+.qcard.ok .expl, .qcard.no .expl { display: block; }
+.qcard.no .expl { border-left-color: var(--wrong-red); }
+.expl b { color: var(--text); }
+
+/* ===== РЕЗУЛЬТАТ ===== */
+.rp {
+  display: none; background: rgba(255,255,255,.95); border-radius: 14px;
+  padding: 1.8rem; text-align: center; box-shadow: 0 4px 24px rgba(0,0,0,.1);
+  margin-top: 1rem; border: 3px solid var(--amber);
+}
+.rp.vis { display: block; }
+.rp h2 { font-size: 1.3rem; color: var(--red); }
+.fs { font-size: 2.8rem; font-weight: 900; color: var(--blue); margin: .3rem 0; }
+.fd { color: var(--muted); font-size: .92rem; margin-bottom: 1rem; }
+.fd b { color: var(--text); }
+.breakdown {
+  display: inline-block; text-align: left; margin: 0 auto 1rem;
+  font-size: .85rem; background: rgba(0,0,0,.04); border-radius: 10px; padding: .7rem 1.1rem;
+}
+.breakdown div { margin: .15rem 0; }
+.btn {
+  display: inline-block; padding: .7rem 1.8rem; background: var(--red); color: #fff;
+  border: none; border-radius: 10px; font-family: inherit; font-size: .95rem;
+  font-weight: 800; cursor: pointer; transition: transform .2s, box-shadow .2s;
+  text-decoration: none; margin: .25rem;
+}
+.btn:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(192,57,43,.3); }
+.btn.sec { background: var(--blue); }
+.btn.sec:hover { box-shadow: 0 6px 18px rgba(41,128,185,.3); }
+
+/* ===== ХАБ: КАЛЕНДАРЬ ===== */
+.week { margin-bottom: 1.4rem; }
+.week h3 {
+  font-size: 1rem; font-weight: 900; margin-bottom: .5rem; padding-left: .6rem;
+  border-left: 5px solid var(--red);
+}
+.week h3 small { display: block; font-size: .75rem; font-weight: 700; color: var(--muted); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: .6rem; }
+
+.dcard {
+  display: block; text-decoration: none; color: inherit;
+  background: var(--card); border: 2px solid #ccc; border-radius: 12px;
+  padding: .7rem .85rem; transition: all .2s; position: relative;
+}
+.dcard:hover { border-color: var(--red); transform: translateY(-2px); box-shadow: 0 5px 16px rgba(0,0,0,.1); }
+.dcard.done { border-color: var(--green); background: var(--green-bg); }
+.dcard.exam { border-color: var(--purple); background: rgba(142,68,173,.07); }
+.dcard.exam.done { border-color: var(--green); background: var(--green-bg); }
+.dcard .dnum { font-size: .7rem; font-weight: 900; color: var(--red); letter-spacing: 1px; text-transform: uppercase; }
+.dcard.exam .dnum { color: var(--purple); }
+.dcard.done .dnum { color: var(--green); }
+.dcard .dttl { font-size: .87rem; font-weight: 800; margin: .15rem 0 .2rem; }
+.dcard .dsk { font-size: .75rem; color: var(--muted); font-weight: 700; }
+.dcard .dres { margin-top: .35rem; font-size: .75rem; font-weight: 800; color: var(--green); }
+.dcard .tick { position: absolute; top: .5rem; right: .6rem; font-size: 1rem; }
+
+/* начатый, но не законченный день — своим цветом, не зелёным */
+.dcard.part { border-color: var(--amber); background: #fdf6e6; }
+.dcard.part .dnum { color: #b9770e; }
+.dcard .dres.part { color: #b9770e; }
+
+/* сброс одного дня: кружок в углу карточки */
+.dreset {
+  position: absolute; top: .35rem; right: .4rem; z-index: 2;
+  border: 2px solid #ccc; background: #fff; color: var(--muted);
+  border-radius: 999px; min-width: 1.6rem; height: 1.6rem; padding: 0 .4rem;
+  font: 800 .75rem/1 'Nunito', sans-serif; cursor: pointer; opacity: .5;
+  transition: opacity .15s, color .15s, border-color .15s;
+}
+.dcard:hover .dreset, .dreset:focus-visible { opacity: 1; }
+.dreset:hover { color: var(--wrong-red); border-color: var(--wrong-red); }
+.dreset.armed {
+  opacity: 1; color: #fff; background: var(--wrong-red); border-color: var(--wrong-red);
+}
+.dcard.done .tick { right: 2.2rem; }
+
+/* полоска «продолжаем с того места» над задачами дня и перед экзаменом */
+.resume {
+  display: flex; align-items: center; gap: .8rem; flex-wrap: wrap;
+  background: #fdf6e6; border: 2px solid var(--amber); border-radius: 12px;
+  padding: .6rem .8rem; margin-bottom: .9rem; font-size: .85rem; font-weight: 700;
+}
+.resume > div { flex: 1 1 16rem; }
+.resume .mini { flex: 0 0 auto; }
+.mini.armed { color: #fff; background: var(--wrong-red); border-color: var(--wrong-red); }
+
+.hint-line {
+  font-size: .78rem; font-weight: 700; color: var(--muted);
+  text-align: center; margin: -.4rem 0 1.2rem;
+}
+
+/* переключатель классов в шапке хаба */
+.grades { display: flex; gap: .35rem; justify-content: center; margin-top: .5rem; }
+.grades a {
+  text-decoration: none; font-size: .78rem; font-weight: 800; color: var(--muted);
+  border: 2px solid #ccc; border-radius: 999px; padding: .2rem .75rem; background: #fff;
+  transition: all .15s;
+}
+.grades a:hover { border-color: var(--blue); color: var(--blue); }
+.grades a.on { background: var(--blue); border-color: var(--blue); color: #fff; }
+
+.hubstats { display: flex; gap: .6rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.stat {
+  flex: 1 1 150px; background: var(--card); border-radius: 12px; padding: .7rem .9rem;
+  border: 2px solid #ccc; text-align: center;
+}
+.stat .v { font-size: 1.6rem; font-weight: 900; color: var(--blue); line-height: 1.1; }
+.stat .k { font-size: .72rem; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+
+.tools { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: 1.2rem; }
+
+.empty {
+  background: var(--card); border: 2px dashed #bbb; border-radius: 12px;
+  padding: 2rem 1rem; text-align: center; color: var(--muted); font-weight: 700;
+}
+
+/* ==========================================================================
+   РЕЖИМ «ОДНА ЗАДАЧА НА ЭКРАН»
+
+   Задачи размечены и живут в странице все сразу — режим только прячет
+   лишние. Поэтому переключение вида ничего не теряет: ответы, подсказки
+   и разборы остаются на своих местах.
+   ========================================================================== */
+
+/* переключатель вида над задачами */
+.viewtoggle {
+  display: flex; gap: .3rem; justify-content: center;
+  margin: 0 0 .9rem;
+}
+.vbtn {
+  font-family: inherit; font-size: .76rem; font-weight: 800; color: var(--muted);
+  border: 2px solid #ccc; border-radius: 999px; padding: .25rem .85rem;
+  background: rgba(255,255,255,.7); cursor: pointer; transition: all .15s;
+}
+.vbtn:hover { border-color: var(--blue); color: var(--blue); }
+.vbtn.on { background: var(--blue); border-color: var(--blue); color: #fff; }
+
+.stepped .qcard { display: none; }
+.stepped .qcard.cur { display: flex; }
+.stepped .sect { display: none; }
+.stepped .sect.cur { display: block; }
+.stepped .hid { display: none; }
+
+/* карточка на телефоне занимает экран целиком: пусто снизу, а не обрезано */
+.stepped .qcard.cur { min-height: 58vh; }
+
+/* нижняя панель: большие цели для пальца, поверх содержимого */
+.stepnav {
+  display: none;
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 200;
+  gap: .5rem; padding: .5rem .7rem calc(.5rem + env(safe-area-inset-bottom));
+  background: rgba(255,255,255,.96);
+  backdrop-filter: blur(6px);
+  border-top: 3px solid #ccc;
+  box-shadow: 0 -4px 16px rgba(0,0,0,.08);
+}
+.stepnav.vis { display: flex; align-items: center; }
+body.has-stepnav { padding-bottom: 5.2rem; }
+
+.snav, .snum {
+  font-family: inherit; font-weight: 900; cursor: pointer;
+  border: 2px solid #ccc; border-radius: 12px; background: #fff; color: var(--text);
+  transition: all .15s;
+}
+.snav {
+  flex: 0 0 auto; width: 3.4rem; height: 3rem; font-size: 1.3rem; line-height: 1;
+  color: var(--blue);
+}
+.snav:hover:not(:disabled) { border-color: var(--blue); background: #eaf4fb; }
+.snav:disabled { opacity: .35; cursor: default; color: var(--muted); }
+.snav.ready { border-color: var(--green); background: var(--green-bg); color: var(--green); }
+
+.snum {
+  flex: 1 1 auto; height: 3rem; font-size: .9rem; font-weight: 800;
+  display: flex; align-items: center; justify-content: center; gap: .3rem;
+  color: var(--muted);
+}
+.snum b { color: var(--red); }
+.snum:hover { border-color: var(--blue); color: var(--blue); }
+
+/* карта задач: по ней возвращаются к пропущенным */
+.stepmap {
+  display: none;
+  position: fixed; inset: 0; z-index: 300;
+  background: rgba(0,0,0,.45);
+  align-items: flex-end; justify-content: center;
+}
+.stepmap.vis { display: flex; }
+.stepmap .sheet {
+  width: 100%; max-width: 520px; max-height: 85vh; overflow-y: auto;
+  background: #fff; border-radius: 18px 18px 0 0;
+  padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom));
+  box-shadow: 0 -8px 30px rgba(0,0,0,.25);
+}
+.stepmap h3 {
+  font-size: .95rem; font-weight: 800; color: var(--blue); margin-bottom: .7rem;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.mapx {
+  font-family: inherit; font-size: 1.5rem; line-height: 1; font-weight: 800;
+  border: none; background: none; color: var(--muted); cursor: pointer; padding: 0 .3rem;
+}
+.mapx:hover { color: var(--wrong-red); }
+
+.stepmap .grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(3rem, 1fr)); gap: .4rem;
+}
+.stepmap .cell {
+  font-family: inherit; font-size: .95rem; font-weight: 800; cursor: pointer;
+  height: 3rem; border: 2px solid #ccc; border-radius: 10px;
+  background: #fff; color: var(--muted); transition: all .15s;
+}
+.stepmap .cell:hover { border-color: var(--blue); }
+.stepmap .cell.seen { border-color: var(--blue); color: var(--blue); background: #eaf4fb; }
+.stepmap .cell.ok   { border-color: var(--green); color: var(--green); background: var(--green-bg); }
+.stepmap .cell.no   { border-color: var(--wrong-red); color: var(--wrong-red); background: var(--wrong-bg); }
+.stepmap .cell.at   { outline: 3px solid var(--amber); outline-offset: 1px; }
+
+.mapfoot {
+  display: flex; align-items: center; gap: .7rem; flex-wrap: wrap;
+  margin-top: .9rem; padding-top: .8rem; border-top: 2px solid #eee;
+}
+.mapleft { flex: 1 1 auto; font-size: .82rem; font-weight: 700; color: var(--muted); }
+.mapfoot .btn { margin: 0; }
+
+/* ===== ТЕЛЕФОН ===== */
+@media (max-width: 640px) {
+  .container { padding: .8rem .6rem 2rem; }
+  .opts { grid-template-columns: 1fr; }
+  .opt { padding: .8rem .9rem; font-size: .95rem; }   /* палец, а не мышь */
+  .qt { font-size: 1rem; }
+  .open-in { width: 100%; font-size: 1.15rem; padding: .7rem .6rem; }
+  .open-row { flex-direction: column; align-items: stretch; }
+  .open-row .mini { padding: .6rem; font-size: .9rem; }
+  .qcard { padding: .9rem .8rem; }
+  .header { padding: .6rem .6rem .5rem; }
+  .header h2 { font-size: .88rem; }
+  .stepmap .grid { grid-template-columns: repeat(5, 1fr); }
+}

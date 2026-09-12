@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>4-я Математическая олимпиада Коперника</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+
+  :root {
+    --red: #c0392b;
+    --green: #27ae60;
+    --green-bg: #e8f8f0;
+    --wrong-red: #e74c3c;
+    --wrong-bg: #fbeaea;
+    --bg: #d8d8d8;
+    --text: #1a1a1a;
+    --muted: #555;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    color: var(--text);
+    line-height: 1.55;
+    min-height: 100vh;
+    background-color: var(--bg);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='500' height='500' opacity='.07'%3E%3Ctext x='15' y='35' font-size='20' font-family='serif' fill='%23333'%3Ex%C2%B2+y%C2%B2%3C/text%3E%3Ctext x='180' y='70' font-size='17' font-family='serif' fill='%23333'%3E%CF%80r%C2%B2%3C/text%3E%3Ctext x='350' y='45' font-size='19' fill='%23333'%3E%E2%88%9A2%3C/text%3E%3Ctext x='70' y='120' font-size='22' fill='%23333'%3E%CE%A3%3C/text%3E%3Ctext x='260' y='130' font-size='15' fill='%23333'%3Ea%C2%B2%2Bb%C2%B2%3Dc%C2%B2%3C/text%3E%3Ctext x='440' y='110' font-size='18' fill='%23333'%3E%C3%B7%3C/text%3E%3Ctext x='40' y='200' font-size='17' fill='%23333'%3E3.14%3C/text%3E%3Ctext x='220' y='210' font-size='21' fill='%23333'%3E%E2%88%9E%3C/text%3E%3Ctext x='400' y='195' font-size='15' fill='%23333'%3Ef(x)%3C/text%3E%3Ctext x='100' y='290' font-size='19' fill='%23333'%3E%C2%B1%3C/text%3E%3Ctext x='310' y='300' font-size='17' fill='%23333'%3E%25%3C/text%3E%3Ctext x='460' y='280' font-size='21' fill='%23333'%3E%CE%94%3C/text%3E%3Ctext x='25' y='370' font-size='15' fill='%23333'%3E2%C3%975%3C/text%3E%3Ctext x='200' y='380' font-size='19' fill='%23333'%3E%E2%88%AB%3C/text%3E%3Ctext x='380' y='360' font-size='17' fill='%23333'%3E45%C2%B0%3C/text%3E%3Ctext x='80' y='450' font-size='21' fill='%23333'%3E%E2%89%A5%3C/text%3E%3Ctext x='270' y='460' font-size='15' fill='%23333'%3E7%C3%978%3C/text%3E%3Ctext x='430' y='440' font-size='19' fill='%23333'%3E%CE%B1%CE%B2%3C/text%3E%3Ccircle cx='140' cy='155' r='25' fill='none' stroke='%23333' stroke-width='1.2'/%3E%3Cpolygon points='240,240 260,280 220,280' fill='none' stroke='%23333' stroke-width='1.2'/%3E%3Crect x='340' y='320' width='35' height='35' fill='none' stroke='%23333' stroke-width='1.2' rx='2'/%3E%3C/svg%3E");
+  }
+
+  /* ===== HEADER ===== */
+  .header {
+    background: rgba(255,255,255,.92);
+    backdrop-filter: blur(6px);
+    border-bottom: 3px solid #ccc;
+    padding: 1rem 1rem .8rem;
+    text-align: center;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo {
+    display: flex; justify-content: center; align-items: center;
+    gap: 1px; font-size: 2rem; font-weight: 900; letter-spacing: 1px; line-height: 1;
+  }
+  .logo span { display: inline-block; }
+  .l1{color:#c0392b}.l2{color:#fff;background:#f39c12;border-radius:50%;width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;font-size:1.3rem}.l3{color:#2980b9}.l4{color:#8e44ad;font-family:serif;font-style:italic}.l5{color:#c0392b}.l6{color:#27ae60}.l7{color:#2c3e50}.l8{color:#f39c12}.l9{color:#2980b9}.l10{color:#27ae60}
+  .sub { font-size:.7rem; font-weight:700; color:#999; letter-spacing:3px; text-transform:uppercase; margin-bottom:.3rem; }
+  .header h2 { font-size:1rem; font-weight:800; }
+  .pbar { width:100%; max-width:500px; height:7px; background:#ddd; border-radius:4px; margin:.5rem auto 0; overflow:hidden; }
+  .pfill { height:100%; background:linear-gradient(90deg,#f39c12,#e74c3c); border-radius:4px; transition:width .4s; width:0%; }
+  .scores { display:flex; justify-content:center; gap:1.2rem; margin-top:.35rem; font-size:.78rem; font-weight:700; }
+  .s-ok{color:var(--green)} .s-no{color:var(--red)} .s-pt{color:#2980b9}
+
+  /* ===== CONTAINER ===== */
+  .container { max-width:1200px; margin:0 auto; padding:1rem .8rem 3rem; }
+
+  /* ===== MOTTO ===== */
+  .motto {
+    border:3px solid var(--red); border-radius:12px; padding:.8rem 1rem;
+    text-align:center; margin-bottom:1rem; background:rgba(255,255,255,.85);
+    font-weight:700; font-size:.9rem;
+  }
+  .motto em { display:block; font-style:italic; color:var(--red); margin-bottom:.2rem; }
+
+  /* ===== QUESTION CARD ===== */
+  .qcard {
+    display: flex;
+    gap: 1rem;
+    background: rgba(255,255,255,.88);
+    border-radius: 14px;
+    padding: 1.2rem;
+    margin-bottom: 1rem;
+    border: 2px solid transparent;
+    box-shadow: 0 2px 10px rgba(0,0,0,.06);
+    transition: border-color .3s, background .3s;
+    align-items: flex-start;
+  }
+  .qcard.ok { border-color:var(--green); background:var(--green-bg); }
+  .qcard.no { border-color:var(--wrong-red); background:var(--wrong-bg); }
+  .qcard.done .opt { pointer-events:none; }
+
+  .q-left { flex: 1; min-width: 0; }
+  .q-right {
+    flex: 0 0 320px;
+    max-width: 320px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #ccc;
+    background: #fff;
+    box-shadow: 0 1px 6px rgba(0,0,0,.08);
+  }
+  .q-right img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  @media (max-width: 860px) {
+    .qcard { flex-direction: column; }
+    .q-right { flex: none; max-width: 100%; align-self: center; }
+  }
+
+  /* question header */
+  .qn { color:var(--red); font-weight:900; font-size:1.1rem; margin-right:.4rem; }
+  .qh { display:flex; align-items:flex-start; margin-bottom:.6rem; }
+  .qt { font-size:.95rem; font-weight:700; padding-top:1px; }
+
+  /* fractions */
+  .fr { display:inline-flex; flex-direction:column; align-items:center; vertical-align:middle; margin:0 3px; font-size:.82em; line-height:1.1; }
+  .fr .n { border-bottom:2px solid var(--text); padding:0 4px 1px; }
+  .fr .d { padding:1px 4px 0; }
+  .fo { display:inline-flex; flex-direction:column; align-items:center; vertical-align:middle; line-height:1.1; font-size:.88em; }
+  .fo .n { border-bottom:2px solid currentColor; padding:0 3px 1px; }
+  .fo .d { padding:1px 3px 0; }
+
+  /* options */
+  .opts { display:grid; grid-template-columns:1fr 1fr; gap:.4rem; }
+  @media (max-width:500px) { .opts{grid-template-columns:1fr;} }
+
+  .opt {
+    display:flex; align-items:center; padding:.6rem .8rem;
+    border:2px solid #ccc; border-radius:10px; cursor:pointer;
+    transition:all .2s; font-weight:700; font-size:.9rem;
+    background:rgba(255,255,255,.55); user-select:none;
+  }
+  .opt:hover { border-color:var(--red); background:#fff; transform:translateY(-1px); }
+  .opt .lt { color:var(--red); font-weight:900; font-size:.95rem; margin-right:.6rem; min-width:18px; }
+
+  .opt.cok { border-color:var(--green); background:var(--green-bg); }
+  .opt.cok .lt { color:var(--green); }
+  .opt.cno { border-color:var(--wrong-red); background:var(--wrong-bg); text-decoration:line-through; opacity:.65; }
+  .opt.cno .lt { color:var(--wrong-red); }
+
+  /* explanation */
+  .expl {
+    display:none; margin-top:.6rem; padding:.55rem .8rem;
+    background:rgba(0,0,0,.04); border-radius:8px;
+    font-size:.82rem; color:var(--muted); border-left:3px solid var(--green);
+  }
+  .qcard.ok .expl, .qcard.no .expl { display:block; }
+  .qcard.no .expl { border-left-color:var(--wrong-red); }
+
+  /* ===== RESULTS ===== */
+  .rp {
+    display:none; background:rgba(255,255,255,.95); border-radius:14px;
+    padding:2rem; text-align:center; box-shadow:0 4px 24px rgba(0,0,0,.1);
+    margin-top:1rem; border:3px solid #f39c12;
+  }
+  .rp.vis { display:block; }
+  .rp h2 { font-size:1.4rem; color:var(--red); }
+  .fs { font-size:3rem; font-weight:900; color:#2980b9; margin:.4rem 0; }
+  .fd { color:var(--muted); font-size:.95rem; margin-bottom:1rem; }
+  .btn {
+    display:inline-block; padding:.7rem 2rem; background:var(--red); color:#fff;
+    border:none; border-radius:10px; font-family:inherit; font-size:1rem;
+    font-weight:800; cursor:pointer; transition:transform .2s,box-shadow .2s;
+  }
+  .btn:hover { transform:translateY(-2px); box-shadow:0 6px 18px rgba(192,57,43,.3); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <span class="l1">C</span><span class="l2">O</span><span class="l3">P</span><span class="l4">&Sigma;</span><span class="l5">R</span><span class="l6">N</span><span class="l7">I</span><span class="l8">C</span><span class="l9">O</span><span class="l10">S</span>
+  </div>
+  <div class="sub">A Tradition of Excellence</div>
+  <h2>4-я Математическая олимпиада &bull; Предварительный раунд &bull; Категория I</h2>
+  <div class="pbar"><div class="pfill" id="pf"></div></div>
+  <div class="scores">
+    <span class="s-ok" id="cO">0 верно</span>
+    <span class="s-no" id="cN">0 неверно</span>
+    <span class="s-pt" id="cP">Баллы: 0</span>
+  </div>
+</div>
+
+<div class="container" id="box"></div>
+
+<script>
+const Q=[
+{q:'Какая из следующих дробей ближе всего к половине?',
+ opts:['<span class="fo"><span class="n">5</span><span class="d">11</span></span>','<span class="fo"><span class="n">4</span><span class="d">11</span></span>','<span class="fo"><span class="n">3</span><span class="d">11</span></span>','<span class="fo"><span class="n">2</span><span class="d">11</span></span>'],
+ ans:0, ex:'Половина = 5,5/11. Дробь 5/11 &asymp; 0,4545 ближе всего к 0,5.'},
+
+{q:'Торговец продал <span class="fr"><span class="n">3</span><span class="d">5</span></span> от 300 кг фруктов в 1-й день и <span class="fr"><span class="n">1</span><span class="d">10</span></span> от 300 кг во 2-й день. Сколько килограммов фруктов осталось?',
+ opts:['60','80','90','100'],
+ ans:2, ex:'3/5 &times; 300 = 180. 1/10 &times; 300 = 30. Остаток: 300 &minus; 180 &minus; 30 = 90 кг.'},
+
+{q:'Фигура разделена на одинаковые квадраты. Сколько ещё квадратов нужно закрасить, чтобы закрашенная часть составляла половину?',
+ opts:['4','5','6','7'],
+ ans:1, ex:'Половина всех клеток минус уже закрашенные = нужно ещё 5.'},
+
+{q:'Числовая прямая разделена на 6 равных частей между 0 и 1. Чему равна сумма A + B + C?',
+ opts:['1','<span class="fo"><span class="n">7</span><span class="d">6</span></span>','<span class="fo"><span class="n">4</span><span class="d">3</span></span>','<span class="fo"><span class="n">3</span><span class="d">2</span></span>'],
+ ans:3, ex:'A + B + C = 3/2.'},
+
+{q:'Автобус едет со скоростью 120 км/ч 4 часа и проезжает <span class="fr"><span class="n">3</span><span class="d">4</span></span> пути. Какова длина всего пути?',
+ opts:['480 км','540 км','560 км','640 км'],
+ ans:3, ex:'120 &times; 4 = 480 км = &frac34; пути. Весь путь: 480 &divide; 3 &times; 4 = 640 км.'},
+
+{q:'Из 19-литровой бутыли разлили воду в 3 бутылки по 5 литров. Сколько литров осталось?',
+ opts:['3','4','5','6'],
+ ans:1, ex:'3 &times; 5 = 15. Остаток: 19 &minus; 15 = 4 л.'},
+
+{q:'Вычитание: A74 &minus; 47A = 3BC. Чему равна сумма A + B + C?',
+ opts:['21','22','23','24'],
+ ans:2, ex:'A=8: 874 &minus; 478 = 396. B=9, C=6. Сумма = 23.'},
+
+{q:'На доске: A &gt; 35, B &lt; 45. Какова разность между наибольшим B и наименьшим A?',
+ opts:['8','9','10','11'],
+ ans:0, ex:'Наименьшее A = 36, наибольшее B = 44. Разность: 44 &minus; 36 = 8.'},
+
+{q:'Сумма возрастов семьи из 6 человек = 120. Какова сумма через 6 лет?',
+ opts:['126','140','150','156'],
+ ans:3, ex:'Прибавка: 6 &times; 6 = 36. Итого: 120 + 36 = 156.'},
+
+{q:'Энес идёт 8 мин до метро, едет 10 мин до школы. Обратно на автобусе 30 мин. Сколько минут в дороге?',
+ opts:['38','40','48','50'],
+ ans:2, ex:'Туда: 8 + 10 = 18. Обратно: 30. Итого: 48 мин.'},
+
+{q:'В комплексе 8 зданий, в каждом 8 этажей, на каждом 3 квартиры. Сколько всего квартир?',
+ opts:['16','192','24','64'],
+ ans:1, ex:'8 &times; 8 &times; 3 = 192.'},
+
+{q:'В зале 32 ряда по 15 мест. Сколько зрителей вмещает зал?',
+ opts:['180','240','360','480'],
+ ans:3, ex:'32 &times; 15 = 480.'},
+
+{q:'Учительница хотела раздать книги 6 ученикам поровну. Один не пришёл, каждому досталось на 3 больше. Сколько всего книг?',
+ opts:['80','90','100','120'],
+ ans:1, ex:'6x = 5(x+3). x = 15. Всего: 90.'},
+
+{q:'У Алекса и Бена вместе 240 $. Если Бен отдаст 16 $ Алексу, будет поровну. Сколько у Алекса?',
+ opts:['104','108','120','116'],
+ ans:0, ex:'Алекс + 16 = (240 &minus; Алекс) &minus; 16 &rArr; Алекс = 104.'},
+
+{q:'У Мэри 186 $, у Пэтти 97 $. Сколько Мэри отдаст Пэтти для равенства?',
+ opts:['44,5','50','75,5','99'],
+ ans:0, ex:'Всего 283. Поровну: 141,5. Мэри отдаёт 186 &minus; 141,5 = 44,5.'},
+
+{q:'Фигура из единичных квадратов. На сколько ед&sup2; оранжевая область больше зелёной?',
+ opts:['1','2','3','4'],
+ ans:1, ex:'Подсчёт по клеткам: оранжевая больше зелёной на 2 ед&sup2;.'},
+
+{q:'Какая фигура имеет наибольшее число осей симметрии?',
+ opts:['Треугольник','Квадрат','Пятиугольник','Шестиугольник'],
+ ans:3, ex:'Правильный шестиугольник &mdash; 6 осей симметрии.'},
+
+{q:'Фигура из единичных квадратов. Сколько нужно добавить, чтобы получился наименьший квадрат?',
+ opts:['4','6','8','9'],
+ ans:1, ex:'Для дополнения до наименьшего квадрата нужно 6 единичных квадратов.'},
+
+{q:'Какой треугольник является равнобедренным?',
+ opts:['70&deg;, 50&deg;, 60&deg;','80&deg;, 30&deg;, 70&deg;','40&deg;, 70&deg;, 70&deg;','30&deg;, 120&deg;, 30&deg;'],
+ ans:2, ex:'Треугольник C: два угла по 70&deg; &rArr; равнобедренный.'},
+
+{q:'Какой набор из 4 точек НЕ может образовать четырёхугольник?',
+ opts:['A, B, C, D','A, E, F, B','C, D, E, F','A, C, E, B'],
+ ans:2, ex:'C, D, E, F &mdash; три точки на одной прямой, четырёхугольник невозможен.'},
+
+{q:'Чему равен периметр ступенчатой фигуры (18 см и 10 см)?',
+ opts:['32 см','48 см','56 см','60 см'],
+ ans:2, ex:'Периметр = периметру описанного прямоугольника: 2&times;(18+10) = 56 см.'},
+
+{q:'Фигура из 5 прямоугольников (5&times;12 см). Чему равен периметр?',
+ opts:['66 см','74 см','68 см','72 см'],
+ ans:1, ex:'Подсчёт внешнего периметра даёт 74 см.'},
+
+{q:'Закономерность: 40, 50, 61, 73, ? &mdash; найдите &laquo;?&raquo;.',
+ opts:['84','85','86','87'],
+ ans:2, ex:'Разности: 10, 11, 12 &rarr; 13. Ответ: 73 + 13 = 86.'},
+
+{q:'Закономерность: 2&rarr;7, 3&rarr;10, 5&rarr;16, 8&rarr;25, 12&rarr;?',
+ opts:['28','31','34','37'],
+ ans:3, ex:'Правило: &times;3 + 1. 12&times;3 + 1 = 37.'},
+
+{q:'Треугольники: (6,5,3)&rarr;27, (8,4,4)&rarr;28. Чему равно (9,5,6)&rarr;?',
+ opts:['32','39','37','50'],
+ ans:1, ex:'Правило: левое &times; верхнее &minus; правое. 5&times;9 &minus; 6 = 39.'}
+];
+
+let ans=0,ok=0,no=0,pts=0;
+const tot=Q.length, box=document.getElementById('box');
+
+function build(){
+  let h=`<div class="motto"><em>&laquo;Упорный труд побеждает талант, когда талант не трудится усердно&raquo;</em><strong>Желаем удачи на олимпиаде!</strong></div>`;
+  Q.forEach((q,i)=>{
+    const n=i+1;
+    h+=`<div class="qcard" id="c${i}">
+      <div class="q-left">
+        <div class="qh"><span class="qn">${n}.</span><span class="qt">${q.q}</span></div>
+        <div class="opts">${q.opts.map((o,j)=>`<div class="opt" onclick="pick(${i},${j})" id="o${i}_${j}"><span class="lt">${'ABCD'[j]})</span><span>${o}</span></div>`).join('')}</div>
+        <div class="expl">${q.ex}</div>
+      </div>
+      <div class="q-right">
+        <img src="img/q${n}.png" alt="Задача ${n} (оригинал)" loading="lazy">
+      </div>
+    </div>`;
+  });
+  h+=`<div class="rp" id="res"><h2>&#127942; Результаты</h2><div class="fs" id="fs"></div><div class="fd" id="fd"></div><button class="btn" onclick="reset()">&#128260; Пройти заново</button></div>`;
+  box.innerHTML=h;
+}
+
+function pick(qi,oi){
+  const c=document.getElementById('c'+qi);
+  if(c.classList.contains('done'))return;
+  const q=Q[qi];
+  if(oi===q.ans){c.classList.add('ok');document.getElementById('o'+qi+'_'+oi).classList.add('cok');ok++;pts+=4;}
+  else{c.classList.add('no');document.getElementById('o'+qi+'_'+oi).classList.add('cno');document.getElementById('o'+qi+'_'+q.ans).classList.add('cok');no++;pts-=1;}
+  c.classList.add('done');ans++;
+  document.getElementById('pf').style.width=(ans/tot*100)+'%';
+  document.getElementById('cO').textContent=ok+' верно';
+  document.getElementById('cN').textContent=no+' неверно';
+  document.getElementById('cP').textContent='Баллы: '+pts;
+  if(ans===tot)showR();
+}
+function showR(){
+  const p=document.getElementById('res');p.classList.add('vis');
+  document.getElementById('fs').textContent=pts+' / 100';
+  const g=pts>=80?'&#127775; Отлично!':pts>=60?'&#128077; Хорошо!':pts>=40?'&#128172; Неплохо!':'&#128170; Попробуй ещё!';
+  document.getElementById('fd').innerHTML=g+'<br>Верных: '+ok+' &bull; Неверных: '+no;
+  p.scrollIntoView({behavior:'smooth'});
+}
+function reset(){
+  ans=0;ok=0;no=0;pts=0;
+  document.getElementById('pf').style.width='0%';
+  document.getElementById('cO').textContent='0 верно';
+  document.getElementById('cN').textContent='0 неверно';
+  document.getElementById('cP').textContent='Баллы: 0';
+  build();window.scrollTo({top:0,behavior:'smooth'});
+}
+build();
+</script>
+</body>
+</html>

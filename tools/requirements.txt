@@ -1,0 +1,3 @@
+# Символьная проверка ответов: tools/verify.py
+# Установка:  pip install -r tools/requirements.txt
+sympy>=1.12

@@ -1,0 +1,6 @@
+# jsdom для build/steptest.js ставится разово и в репозитории не нужен
+node_modules/
+
+# служебное
+__pycache__/
+*.pyc
