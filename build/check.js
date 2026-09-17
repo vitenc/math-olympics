@@ -153,6 +153,8 @@ const PAPERS = [
   { id: 'sasmo25',    v: 'SASMO25',    n: 25, label: 'SASMO 2025 / 3 класс', sasmo: true },
   { id: 'sasmo24',    v: 'SASMO24',    n: 25, label: 'SASMO 2024 / 3 класс', sasmo: true },
   { id: 'sasmo23',    v: 'SASMO23',    n: 25, label: 'SASMO 2023 / 3 класс', sasmo: true },
+  { id: 'amo24',      v: 'AMO24',      n: 25, label: 'AMO 2024 / 3 класс' },
+  { id: 'amo23',      v: 'AMO23',      n: 25, label: 'AMO 2023 / 3 класс' },
   { id: 'mathxcel24', v: 'MATHXCEL24', n: 25, label: 'MathXCEL 2024 / 3 класс' }
 ];
 
@@ -184,6 +186,29 @@ function checkPapers() {
             errors.push(`${where} #${i + 1}: тип «${q.type}», а по правилам SASMO должен быть «${want}»`);
           }
         });
+      }
+    } else if (Array.isArray(R.sections)) {
+      /* Секции списком (AMO): у каждой своя цена задачи и свой тип ответа.
+         Проверяем, что границы секций складываются в набор целиком, что
+         максимум сходится с ценами и что тип задачи отвечает секции. */
+      let at = 0, calc = R.start || 0;
+      R.sections.forEach((sec, k) => {
+        const last = k === R.sections.length - 1;
+        const to = last || sec.n == null ? data.questions.length : at + sec.n;
+        calc += (to - at) * (sec.ok || 0);
+        for (let i = at; i < to && i < data.questions.length; i++) {
+          if (sec.type && data.questions[i].type !== sec.type) {
+            errors.push(`${where} #${i + 1}: тип «${data.questions[i].type}», ` +
+                        `а в секции «${sec.name}» должен быть «${sec.type}»`);
+          }
+        }
+        at = to;
+      });
+      if (at !== data.questions.length) {
+        errors.push(`${where}: секции покрывают ${at} задач из ${data.questions.length}`);
+      }
+      if (R.max !== calc) {
+        errors.push(`${where}: максимум ${R.max}, а по ценам задач выходит ${calc}`);
       }
     } else {
       // Максимум должен сходиться с ценой задач: иначе ребёнку покажут «60 из 55»

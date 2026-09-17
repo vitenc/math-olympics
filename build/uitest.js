@@ -599,6 +599,114 @@ function examScore(width, view) {
   }
 }
 
+/* ------------- 12. правила счёта с тремя секциями (формат AMO) ------- */
+
+/* У SASMO две секции, у AMO три — и цена задачи в каждой своя. Движок
+   держит секции списком; старая запись (split + a/b) должна работать
+   по-прежнему, иначе разъедется счёт у программы и у MathXCEL. */
+{
+  const w = boot(1400);
+  const qs = [];
+  for (let i = 0; i < 9; i++) {
+    qs.push(i < 6
+      ? { type: 'mcq', topic: 'т', q: 'Задача ' + (i + 1), opts: ['1', '2', '3', '4'],
+          ans: i % 4, hint: 'h', ex: 'x' }
+      : { type: 'open', topic: 'т', q: 'Задача ' + (i + 1), ans: i, hint: 'h', ex: 'x' });
+  }
+  const rules = {
+    start: 0,
+    sections: [
+      { n: 3, ok: 3, no: 0, name: 'Секция A', head: 'СЕКЦИЯ A', note: '+3' },
+      { n: 3, ok: 5, no: 0, name: 'Секция B', head: 'СЕКЦИЯ B', note: '+5' },
+      {       ok: 6, no: 0, name: 'Секция C', head: 'СЕКЦИЯ C', note: '+6' }
+    ],
+    blankNote: 'Пустых: <b>{n}</b>.'
+  };
+  const quiz = w.SASMO.run({
+    mount: w.document.getElementById('box'), questions: qs,
+    mode: 'exam', setId: 'threesec', rules, minutes: 30
+  });
+
+  ok(quiz.rules.sections.length === 3, 'секций должно быть три');
+  ok(quiz.rules.sections[2].from === 6 && quiz.rules.sections[2].to === 9,
+     'у последней секции границы должны досчитаться сами');
+  ok(quiz.rules.max === 3 * 3 + 3 * 5 + 3 * 6,
+     `максимум должен быть ${3 * 3 + 3 * 5 + 3 * 6}, а вышел ${quiz.rules.max}`);
+
+  const sects = [...w.document.querySelectorAll('.sect')];
+  ok(sects.length === 3, `заголовков секций должно быть три, а их ${sects.length}`);
+
+  // отвечаем верно только в третьей секции: 3 задачи по 6 баллов
+  qs.forEach((q, i) => {
+    if (i < 6) return;
+    const inp = w.document.getElementById('in' + i);
+    inp.value = String(q.ans);
+    inp.dispatchEvent(new w.Event('input', { bubbles: true }));
+  });
+  w.document.getElementById('finishBtn').click();
+  ok(w.document.getElementById('fs').textContent === '18 / 42',
+     'за три задачи секции C должно быть 18 / 42, а вышло ' +
+     w.document.getElementById('fs').textContent);
+
+  const bd = w.document.getElementById('bd').textContent;
+  ok(/Секция A/.test(bd) && /Секция B/.test(bd) && /Секция C/.test(bd),
+     'в разбивке итога должны быть все три секции');
+  ok(/Пустых: 6/.test(bd),
+     'предупреждение о пустых должно считать все секции без штрафа, а вышло: ' + bd);
+}
+
+/* ----------------------- 13. работы AMO: три секции ------------------ */
+
+/* AMO — первая олимпиада в тренажёре с тремя секциями. Проверяем, что счёт
+   берётся из набора, что заголовки секций встают на нужные задачи и что
+   за полностью верную работу выходит ровно 100. */
+{
+  const w = boot(1400);
+  w.eval(fs.readFileSync(path.join(ROOT, 'assets/paper.js'), 'utf8'));
+
+  for (const [set, v] of [['amo24', 'AMO24'], ['amo23', 'AMO23']]) {
+    w.eval(fs.readFileSync(path.join(ROOT, 'data/' + set + '.js'), 'utf8'));
+    const data = w[v];
+    ok(data.questions.length === 25, `${set}: в работе должно быть 25 задач`);
+    ok(data.rules.sections.length === 3, `${set}: секций должно быть три`);
+    ok(w.SASMO_PAPER.byId(set).max === 100, `${set}: в каталоге максимум должен быть 100`);
+    ok(data.questions.slice(0, 15).every(q => q.type === 'mcq' && q.opts.length === 4),
+       `${set}: в секции A 15 задач с выбором из четырёх вариантов`);
+    ok(data.questions.slice(15).every(q => q.type === 'open'),
+       `${set}: в секциях B и C ответ должен быть числом`);
+
+    w.document.getElementById('box').innerHTML = '';
+    w.SASMO.usePlan({ keys: w.SASMO_PAPER.keys('dima'), hubHref: 'index.html',
+                      errorsHref: 'errors.html?who=dima' });
+    const quiz = w.SASMO.run({
+      mount: w.document.getElementById('box'), questions: data.questions,
+      mode: 'exam', setId: set, rules: data.rules, minutes: 90
+    });
+
+    ok(quiz.rules.max === 100,
+       `${set}: движок должен насчитать максимум 100, а вышло ${quiz.rules.max}`);
+    ok(quiz.rules.sections[2].from === 20 && quiz.rules.sections[2].to === 25,
+       `${set}: секция C — это задачи 21–25`);
+    ok(quiz.sectionOf(0) === 0 && quiz.sectionOf(15) === 1 && quiz.sectionOf(24) === 2,
+       `${set}: задачи разошлись по секциям неверно`);
+
+    const sects = [...w.document.querySelectorAll('.sect')];
+    ok(sects.length === 3, `${set}: заголовков секций должно быть три, а их ${sects.length}`);
+
+    answerAll(w, w.document, quiz);
+    w.document.getElementById('finishBtn').click();
+    ok(w.document.getElementById('fs').textContent === '100 / 100',
+       `${set}: за всё верное должно быть 100 / 100, а вышло ` +
+       w.document.getElementById('fs').textContent);
+    const bd = w.document.getElementById('bd').textContent;
+    ok(/Секция C/.test(bd), `${set}: в разбивке итога должна быть секция C`);
+
+    const missing = data.questions.filter(q => q.img && !fs.existsSync(path.join(ROOT, q.img)))
+                                  .map(q => q.img);
+    ok(missing.length === 0, `${set}: нет файлов картинок: ` + missing.join(', '));
+  }
+}
+
 /* --------------------------------------------------------------- итог --- */
 
 windows.forEach(w => w.close());

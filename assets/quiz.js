@@ -321,11 +321,23 @@ window.SASMO = (function () {
      этого поля работают правила SASMO — такие же, как были до появления
      второго формата.
 
-       split — сколько задач в первой секции (дальше идёт вторая)
        start — стартовые баллы, которые дают до первой задачи
-       a, b  — сколько прибавить за верный (ok) и за неверный (no) в секции
        max   — максимум; если не указан, считается сам
-       tiers — пороги наград: [балл, подпись], сверху вниз                    */
+       tiers — пороги наград: [балл, подпись], сверху вниз
+       blankNote — чем предупредить о пустых там, где за ошибку не снимают
+
+     Секции описываются списком — их может быть сколько угодно:
+
+       sections: [
+         { n: 15, ok: 3, no: 0, name: 'Секция A', head: '…', note: '…' },
+         { n: 5,  ok: 5, no: 0, name: 'Секция B', head: '…', note: '…' },
+         { n: 5,  ok: 6, no: 0, name: 'Секция C', head: '…', note: '…' }
+       ]
+
+     У последней секции `n` можно не писать: в неё уходит весь остаток.
+     Старая запись (split + a/b + aName/aHead/aNote/bName/bHead/bNote)
+     понимается по-прежнему — под неё написаны правила SASMO ниже и
+     data/mathxcel24.js.                                                      */
 
   var SASMO_RULES = {
     split: 15,
@@ -351,27 +363,55 @@ window.SASMO = (function () {
     return k;
   }
 
+  /* Границы секций в номерах задач. Подписи переводятся по словарю:
+     у правил SASMO перевод есть, у правил из набора — останутся как написаны. */
+  function sectionsFrom(src, n) {
+    if (Array.isArray(src.sections)) {
+      var out = [], at = 0;
+      src.sections.forEach(function (sec, k) {
+        var last = k === src.sections.length - 1;
+        var to = last || sec.n == null ? n : Math.min(n, at + sec.n);
+        out.push({
+          from: at, to: to,
+          ok: sec.ok || 0, no: sec.no || 0,
+          name: t(sec.name || ('Секция ' + 'ABCDEFGH'.charAt(k))),
+          head: t(sec.head || ''), note: t(sec.note || '')
+        });
+        at = to;
+      });
+      return out;
+    }
+    // старая запись: ровно две секции, граница в `split`
+    var split = src.split == null ? n : src.split;
+    return [
+      { from: 0, to: split,
+        ok: (src.a && src.a.ok) || 0, no: (src.a && src.a.no) || 0,
+        name: t(src.aName || 'Секция A'),
+        head: t(src.aHead || ''), note: t(src.aNote || '') },
+      { from: split, to: n,
+        ok: (src.b && src.b.ok) || 0, no: (src.b && src.b.no) || 0,
+        name: t(src.bName || 'Секция B'),
+        head: t(src.bHead || ''), note: t(src.bNote || '') }
+    ];
+  }
+
   function rulesFor(cfg) {
     var src = cfg.rules || SASMO_RULES;
     var n = cfg.questions.length;
-    // Подписи переводятся по словарю: у правил SASMO перевод есть,
-    // у правил из набора (MathXCEL) — останутся как написаны.
     var r = {
-      split: src.split == null ? n : src.split,
       start: src.start || 0,
-      a: { ok: (src.a && src.a.ok) || 0, no: (src.a && src.a.no) || 0 },
-      b: { ok: (src.b && src.b.ok) || 0, no: (src.b && src.b.no) || 0 },
-      aName: t(src.aName || 'Секция A'),
-      bName: t(src.bName || 'Секция B'),
-      aHead: t(src.aHead || ''), aNote: t(src.aNote || ''),
-      bHead: t(src.bHead || ''), bNote: t(src.bNote || ''),
+      sections: sectionsFrom(src, n),
+      blankNote: src.blankNote || '',
       tiers: (src.tiers || []).map(function (x) { return [x[0], t(x[1])]; })
     };
+    // Граница первой секции — её удобно спрашивать снаружи (проверки, тесты)
+    r.split = r.sections.length ? r.sections[0].to : n;
     // Задачи без восстановленного ответа в максимум не входят — иначе ребёнку
     // покажут «79 из 85» там, где он решил всё, что можно решить.
     r.max = src.max == null
-      ? r.start + liveIn(cfg.questions, 0, r.split) * r.a.ok +
-                  liveIn(cfg.questions, r.split, n) * r.b.ok
+      ? r.sections.reduce(function (sum, sec) {
+          return sum + liveIn(cfg.questions, sec.from, sec.to) * sec.ok;
+        }, r.start)
       : src.max;
     return r;
   }
@@ -397,15 +437,19 @@ window.SASMO = (function () {
     var self = this;
     var html = '';
 
-    if (this.cfg.mode === 'exam' && this.rules.aHead) {
-      html += '<div class="sect">' + this.rules.aHead +
-              '<small>' + this.rules.aNote + '</small></div>';
+    /* Заголовок секции — перед её первой задачей. Секций может быть сколько
+       угодно: у SASMO две, у AMO три. */
+    var heads = {};
+    if (this.cfg.mode === 'exam') {
+      this.rules.sections.forEach(function (sec) {
+        if (sec.head && sec.from < self.Q.length) heads[sec.from] = sec;
+      });
     }
 
     this.Q.forEach(function (q, i) {
-      if (self.cfg.mode === 'exam' && i === self.rules.split && self.rules.bHead) {
-        html += '<div class="sect">' + self.rules.bHead +
-                '<small>' + self.rules.bNote + '</small></div>';
+      if (heads[i]) {
+        html += '<div class="sect">' + heads[i].head +
+                '<small>' + heads[i].note + '</small></div>';
       }
       html += questionHTML(q, i, self.cfg);
     });
@@ -958,6 +1002,13 @@ window.SASMO = (function () {
     }
   };
 
+  /* В какой секции лежит задача номер i. */
+  Quiz.prototype.sectionOf = function (i) {
+    var s = this.rules.sections;
+    for (var k = 0; k < s.length; k++) if (i >= s[k].from && i < s[k].to) return k;
+    return Math.max(0, s.length - 1);
+  };
+
   /* --- завершение --- */
   Quiz.prototype.finish = function (byTimer) {
     if (this.finished) return;
@@ -968,7 +1019,8 @@ window.SASMO = (function () {
     // в экзамене снимаем показания полей и раскрываем всё разом
     if (this.cfg.mode === 'exam') {
       this.ok = 0; this.no = 0;
-      var blank = 0, aOk = 0, aNo = 0, bOk = 0, bNo = 0, results = [];
+      var blank = 0, results = [];
+      var per = this.rules.sections.map(function () { return { ok: 0, no: 0 }; });
 
       for (i = 0; i < this.Q.length; i++) {
         q = this.Q[i];
@@ -1010,20 +1062,22 @@ window.SASMO = (function () {
           blank++;
         } else if (good) {
           this.ok++;
-          if (i < this.rules.split) aOk++; else bOk++;
+          per[this.sectionOf(i)].ok++;
         } else {
           this.no++;
-          if (i < this.rules.split) aNo++; else bNo++;
+          per[this.sectionOf(i)].no++;
           rememberError(this.cfg.setId, i, q);
         }
       }
 
       // Счёт по правилам набора (по умолчанию — SASMO, см. SASMO_RULES)
       var R = this.rules;
-      var score = R.start + (aOk * R.a.ok + aNo * R.a.no) + (bOk * R.b.ok + bNo * R.b.no);
+      var score = R.sections.reduce(function (sum, sec, k) {
+        return sum + per[k].ok * sec.ok + per[k].no * sec.no;
+      }, R.start);
       // сохраняем раньше отрисовки: результат важнее анимации
       this.storeDone(score, results);
-      this.showExamResult(score, aOk, aNo, bOk, bNo, blank, byTimer);
+      this.showExamResult(score, per, blank, byTimer);
       return;
     }
 
@@ -1104,8 +1158,8 @@ window.SASMO = (function () {
     this.showPanel();
   };
 
-  Quiz.prototype.showExamResult = function (score, aOk, aNo, bOk, bNo, blank, byTimer) {
-    var R = this.rules;
+  Quiz.prototype.showExamResult = function (score, per, blank, byTimer) {
+    var R = this.rules, self = this;
 
     // Пороги приблизительные: награды раздают по процентилям,
     // и реальные границы меняются от года к году.
@@ -1126,8 +1180,13 @@ window.SASMO = (function () {
       }) + '</div>';
     }
 
-    var bTotal = liveIn(this.Q, R.split, this.Q.length);
-    var bBlank = bTotal - bOk - bNo;
+    /* Пустой ответ там, где за ошибку не снимают, — чистая потеря баллов,
+       и об этом стоит сказать отдельно. */
+    var freeBlank = 0;
+    R.sections.forEach(function (sec, k) {
+      if (sec.no !== 0) return;
+      freeBlank += liveIn(self.Q, sec.from, sec.to) - per[k].ok - per[k].no;
+    });
 
     document.getElementById('fs').textContent = score + ' / ' + R.max;
     document.getElementById('fd').innerHTML =
@@ -1138,15 +1197,18 @@ window.SASMO = (function () {
     document.getElementById('bd').innerHTML =
       '<div class="breakdown">' +
         (R.start ? '<div>' + t('Стартовые баллы: <b>+{n}</b>', { n: R.start }) + '</div>' : '') +
-        line(R.aName || t('Секция A'), aOk, aNo, R.a) +
-        line(R.bName || t('Секция B'), bOk, bNo, R.b) +
+        R.sections.map(function (sec, k) {
+          return line(sec.name, per[k].ok, per[k].no, sec);
+        }).join('') +
         '<div style="border-top:1px solid #ccc;margin-top:.35rem;padding-top:.35rem">' +
              t('Итого: <b>{s}</b> из {m}', { s: score, m: R.max }) + '</div>' +
-        (bBlank > 0 && R.b.no === 0
+        (freeBlank > 0
           ? '<div style="color:#b9770e;margin-top:.35rem">' +
-            (bBlank === 1
-              ? t('⚠️ В открытых задачах осталась <b>1</b> пустая. За неверный ответ там не снимают — пиши число всегда.')
-              : t('⚠️ В открытых задачах осталось <b>{n}</b> пустых. За неверный ответ там не снимают — пиши число всегда.', { n: bBlank })) +
+            (R.blankNote
+              ? t(R.blankNote, { n: freeBlank })
+              : freeBlank === 1
+                ? t('⚠️ В открытых задачах осталась <b>1</b> пустая. За неверный ответ там не снимают — пиши число всегда.')
+                : t('⚠️ В открытых задачах осталось <b>{n}</b> пустых. За неверный ответ там не снимают — пиши число всегда.', { n: freeBlank })) +
             '</div>'
           : '') +
       '</div>';

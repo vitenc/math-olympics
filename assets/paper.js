@@ -49,6 +49,12 @@
     { id: 'sasmo23',    olympiad: 'SASMO', year: 2023, grade: 3,
       set: 'sasmo23',    varName: 'SASMO23',    minutes: 90, max: 83,
       note: '25 задач · 90 минут · к одной задаче ответ не восстановлен' },
+    { id: 'amo24',      olympiad: 'AMO', year: 2024, grade: 3,
+      set: 'amo24',      varName: 'AMO24',      minutes: 90, max: 100,
+      note: '25 задач · 90 минут · три секции по 3, 5 и 6 баллов, штрафов нет' },
+    { id: 'amo23',      olympiad: 'AMO', year: 2023, grade: 3,
+      set: 'amo23',      varName: 'AMO23',      minutes: 90, max: 100,
+      note: '25 задач · 90 минут · три секции по 3, 5 и 6 баллов, штрафов нет' },
     { id: 'mathxcel24', olympiad: 'MathXCEL', year: 2024, grade: 3,
       set: 'mathxcel24', varName: 'MATHXCEL24', minutes: 80, max: 55,
       note: '25 задач · 80 минут · максимум 55 баллов, штрафов нет' }
