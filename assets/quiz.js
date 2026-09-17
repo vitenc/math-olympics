@@ -1,6 +1,7 @@
 /* ==========================================================================
-   SASMO Grade 3 — движок тренажёра
+   Движок тренажёра
    Работает по протоколу file:// — без модулей, без fetch, без сборки.
+   Строки интерфейса — через t() из assets/i18n.js (см. там же словарь).
 
    Формат задачи:
      {
@@ -21,6 +22,22 @@
 
 window.SASMO = (function () {
   'use strict';
+
+  /* Язык интерфейса живёт в assets/i18n.js. Без него всё по-русски:
+     t() возвращает строку как есть, только подставляя {переменные}. */
+  var I = window.I18N || {
+    lang: 'ru',
+    t: function (s, vars) {
+      if (!vars) return s;
+      return String(s).replace(/\{(\w+)\}/g, function (m, k) {
+        return Object.prototype.hasOwnProperty.call(vars, k) ? vars[k] : m;
+      });
+    },
+    pick: function (o, f) { return o ? o[f] : ''; },
+    localize: function (q) { return q; },
+    isDemo: function () { return false; }
+  };
+  var t = I.t;
 
   // Ключи задаёт страница: у второго и третьего класса за тренажёром
   // разные дети, и прогресс одного не должен мешаться с прогрессом другого.
@@ -54,8 +71,11 @@ window.SASMO = (function () {
 
   function usePlan(plan) {
     if (!plan) return;
-    if (plan.keys && plan.keys.progress) PROGRESS_KEY = plan.keys.progress;
-    if (plan.keys && plan.keys.errors)   ERRORS_KEY   = plan.keys.errors;
+    // Демо-режим хранит образец прогресса под своими ключами:
+    // показ для гостей не должен трогать настоящие результаты ребёнка.
+    var pre = I.isDemo() ? 'demo.' : '';
+    if (plan.keys && plan.keys.progress) PROGRESS_KEY = pre + plan.keys.progress;
+    if (plan.keys && plan.keys.errors)   ERRORS_KEY   = pre + plan.keys.errors;
     var g = plan.grade && plan.grade !== 3 ? '?g=' + plan.grade : '';
     // Отдельные работы задают ссылки прямо: их журнал ошибок свой у каждого
     // решающего, и по классу его адрес не вычислить.
@@ -168,7 +188,7 @@ window.SASMO = (function () {
     }
     var was = btn.innerHTML;
     btn.dataset.armed = '1';
-    btn.innerHTML = btn.getAttribute('data-armed-text') || 'Нажми ещё раз';
+    btn.innerHTML = t(btn.getAttribute('data-armed-text') || 'Нажми ещё раз');
     btn.classList.add('armed');
     setTimeout(function () {
       if (!btn.isConnected || btn.dataset.armed !== '1') return;
@@ -193,11 +213,12 @@ window.SASMO = (function () {
     for (var i = 0; i < errs.length; i++) {
       if (errs[i].key === key) return;      // уже записана — не дублируем
     }
+    // Перевод едет вместе с задачей: журнал должен открываться на любом языке
     errs.push({
       key: key, setId: setId, idx: idx, ts: Date.now(),
       type: q.type, q: q.q, opts: q.opts, ans: q.ans,
       hint: q.hint, ex: q.ex, topic: q.topic,
-      fig: q.fig, exfig: q.exfig, img: q.img
+      fig: q.fig, exfig: q.exfig, img: q.img, en: q.en
     });
     saveErrors(errs);
   }
@@ -235,20 +256,39 @@ window.SASMO = (function () {
   function questionHTML(q, i, cfg) {
     var n = i + 1;
     var body = '';
+    q = I.localize(q);        // текст на выбранном языке; ответ и тип те же
+
+    /* Задача с полем `skip` — та, для которой ответ не восстановлен.
+       Так бывает у прошлых олимпиад: буклет без ключа, а закономерность
+       не сходится (см. data/sasmo24.js). Показать её честно можно, а
+       засчитывать нечего: ни ответа, ни баллов, в максимум не входит. */
+    if (q.skip) {
+      return '<div class="qcard skip done" id="c' + i + '" data-i="' + i + '">' +
+               '<div class="q-left">' +
+                 '<div class="qh"><span class="qn">' + n + '.</span><span class="qt">' + q.q + '</span></div>' +
+                 FIG.forQuestion(q) +
+                 '<div class="note warm skipnote">' + t('Ответ к этой задаче не восстановлен: ' +
+                   'в буклете олимпиады ключа нет. Реши её на бумаге и сверься с учителем — ' +
+                   'в счёт работы она не идёт.') + '</div>' +
+               '</div>' +
+               (q.img ? '<div class="q-right"><img src="' + q.img + '" alt="' + t('Задача {n}', { n: n }) + '" loading="lazy"></div>' : '') +
+             '</div>';
+    }
 
     if (q.type === 'open') {
       body =
         '<div class="open-row">' +
           '<input class="open-in" id="in' + i + '" type="text" inputmode="decimal" ' +
-                 'autocomplete="off" placeholder="ответ">' +
+                 'autocomplete="off" placeholder="' + t('ответ') + '">' +
           (cfg.mode === 'exam'
-            ? '<span class="hintmsg">пустых ответов быть не должно</span>'
-            : '<button class="mini" data-act="check" data-i="' + i + '">Проверить</button>') +
+            ? '<span class="hintmsg">' + t('пустых ответов быть не должно') + '</span>'
+            : '<button class="mini" data-act="check" data-i="' + i + '">' + t('Проверить') + '</button>') +
         '</div>';
     } else {
       body = '<div class="opts">' + q.opts.map(function (o, j) {
         return '<div class="opt" data-act="pick" data-i="' + i + '" data-j="' + j + '" id="o' + i + '_' + j + '">' +
-                 '<span class="lt">' + 'ABCD'[j] + ')</span><span>' + o + '</span>' +
+                 // У SASMO пять вариантов (A–E), у MathXCEL четыре: букв берём с запасом
+                 '<span class="lt">' + 'ABCDE'[j] + ')</span><span>' + o + '</span>' +
                '</div>';
       }).join('') + '</div>';
     }
@@ -256,7 +296,7 @@ window.SASMO = (function () {
     var actions = '';
     if (cfg.mode === 'practice' && q.hint) {
       actions = '<div class="qactions">' +
-                  '<button class="mini ghost" data-act="hint" data-i="' + i + '">💡 Подсказка</button>' +
+                  '<button class="mini ghost" data-act="hint" data-i="' + i + '">' + t('💡 Подсказка') + '</button>' +
                 '</div>';
     }
 
@@ -269,7 +309,7 @@ window.SASMO = (function () {
                (q.hint ? '<div class="hint" id="h' + i + '">💡 ' + q.hint + '</div>' : '') +
                '<div class="expl" id="e' + i + '">' + (q.ex || '') + FIG.forExplain(q) + '</div>' +
              '</div>' +
-             (q.img ? '<div class="q-right"><img src="' + q.img + '" alt="Задача ' + n + '" loading="lazy"></div>' : '') +
+             (q.img ? '<div class="q-right"><img src="' + q.img + '" alt="' + t('Задача {n}', { n: n }) + '" loading="lazy"></div>' : '') +
            '</div>';
   }
 
@@ -304,22 +344,34 @@ window.SASMO = (function () {
             [50, '🥉 Уровень бронзы'], [40, '🎖 Уровень похвального отзыва']]
   };
 
+  /* Сколько задач в секции реально считаются (без `skip`). */
+  function liveIn(questions, from, to) {
+    var k = 0;
+    for (var i = from; i < to && i < questions.length; i++) if (!questions[i].skip) k++;
+    return k;
+  }
+
   function rulesFor(cfg) {
     var src = cfg.rules || SASMO_RULES;
     var n = cfg.questions.length;
+    // Подписи переводятся по словарю: у правил SASMO перевод есть,
+    // у правил из набора (MathXCEL) — останутся как написаны.
     var r = {
       split: src.split == null ? n : src.split,
       start: src.start || 0,
       a: { ok: (src.a && src.a.ok) || 0, no: (src.a && src.a.no) || 0 },
       b: { ok: (src.b && src.b.ok) || 0, no: (src.b && src.b.no) || 0 },
-      aName: src.aName || 'Секция A',
-      bName: src.bName || 'Секция B',
-      aHead: src.aHead || '', aNote: src.aNote || '',
-      bHead: src.bHead || '', bNote: src.bNote || '',
-      tiers: src.tiers || []
+      aName: t(src.aName || 'Секция A'),
+      bName: t(src.bName || 'Секция B'),
+      aHead: t(src.aHead || ''), aNote: t(src.aNote || ''),
+      bHead: t(src.bHead || ''), bNote: t(src.bNote || ''),
+      tiers: (src.tiers || []).map(function (x) { return [x[0], t(x[1])]; })
     };
+    // Задачи без восстановленного ответа в максимум не входят — иначе ребёнку
+    // покажут «79 из 85» там, где он решил всё, что можно решить.
     r.max = src.max == null
-      ? r.start + r.split * r.a.ok + (n - r.split) * r.b.ok
+      ? r.start + liveIn(cfg.questions, 0, r.split) * r.a.ok +
+                  liveIn(cfg.questions, r.split, n) * r.b.ok
       : src.max;
     return r;
   }
@@ -332,6 +384,8 @@ window.SASMO = (function () {
     this.Q = cfg.questions;
     this.given = new Array(this.Q.length).fill(null);
     this.checked = new Array(this.Q.length).fill(false);
+    // Сколько задач вообще можно решить: `skip` не считается нигде
+    this.live = this.Q.filter(function (q) { return !q.skip; }).length;
     this.ok = 0;
     this.no = 0;
     this.answered = 0;
@@ -358,12 +412,12 @@ window.SASMO = (function () {
 
     html += '<div style="text-align:center;margin-top:1.2rem">' +
               '<button class="btn" id="finishBtn">' +
-                (this.cfg.mode === 'exam' ? '🏁 Завершить экзамен' : '✅ Показать итог') +
+                t(this.cfg.mode === 'exam' ? '🏁 Завершить экзамен' : '✅ Показать итог') +
               '</button>' +
             '</div>';
 
     html += '<div class="rp" id="res">' +
-              '<h2>🏆 Результат</h2>' +
+              '<h2>' + t('🏆 Результат') + '</h2>' +
               '<div class="fs" id="fs"></div>' +
               '<div class="fd" id="fd"></div>' +
               '<div id="bd"></div>' +
@@ -405,8 +459,8 @@ window.SASMO = (function () {
     var tg = document.createElement('div');
     tg.className = 'viewtoggle';
     tg.innerHTML =
-      '<button class="vbtn" type="button" data-view="step">По одной</button>' +
-      '<button class="vbtn" type="button" data-view="list">Списком</button>';
+      '<button class="vbtn" type="button" data-view="step">' + t('По одной') + '</button>' +
+      '<button class="vbtn" type="button" data-view="list">' + t('Списком') + '</button>';
     this.mount.insertBefore(tg, this.mount.firstChild);
     this.toggle = tg;
 
@@ -429,9 +483,9 @@ window.SASMO = (function () {
     nav.id = 'stepnav';
     nav.className = 'stepnav';
     nav.innerHTML =
-      '<button class="snav" type="button" id="stepPrev" aria-label="Предыдущая задача">&#8592;</button>' +
-      '<button class="snum" type="button" id="stepNum" aria-label="Все задачи"></button>' +
-      '<button class="snav" type="button" id="stepNext" aria-label="Следующая задача">&#8594;</button>';
+      '<button class="snav" type="button" id="stepPrev" aria-label="' + t('Предыдущая задача') + '">&#8592;</button>' +
+      '<button class="snum" type="button" id="stepNum" aria-label="' + t('Все задачи') + '"></button>' +
+      '<button class="snav" type="button" id="stepNext" aria-label="' + t('Следующая задача') + '">&#8594;</button>';
     document.body.appendChild(nav);
     this.nav = nav;
 
@@ -451,8 +505,8 @@ window.SASMO = (function () {
     map.className = 'stepmap';
     map.innerHTML =
       '<div class="sheet">' +
-        '<h3>Все задачи<button class="mapx" type="button" id="stepMapClose" ' +
-             'aria-label="Закрыть">&times;</button></h3>' +
+        '<h3>' + t('Все задачи') + '<button class="mapx" type="button" id="stepMapClose" ' +
+             'aria-label="' + t('Закрыть') + '">&times;</button></h3>' +
         '<div class="grid" id="stepGrid"></div>' +
         '<div class="mapfoot" id="stepMapFoot"></div>' +
       '</div>';
@@ -583,6 +637,7 @@ window.SASMO = (function () {
 
   /* Что известно про задачу: решена верно, неверно, тронута или пуста. */
   Quiz.prototype.stepState = function (i) {
+    if (this.Q[i].skip) return 'skip';
     if (this.checked[i]) {
       return this.cards[i].classList.contains('ok') ? 'ok' : 'no';
     }
@@ -626,10 +681,10 @@ window.SASMO = (function () {
 
     document.getElementById('stepMapFoot').innerHTML = this.finished ? '' :
       '<div class="mapleft">' +
-        (left ? 'Без ответа: <b>' + left + '</b>' : 'Отвечено всё') +
+        (left ? t('Без ответа: <b>{n}</b>', { n: left }) : t('Отвечено всё')) +
       '</div>' +
       '<button class="btn" type="button" id="stepMapFinish">' +
-        (this.cfg.mode === 'exam' ? 'Завершить' : 'Показать итог') +
+        t(this.cfg.mode === 'exam' ? 'Завершить' : 'Показать итог') +
       '</button>';
   };
 
@@ -687,7 +742,7 @@ window.SASMO = (function () {
       });
 
     // день был доведён до конца — сразу показываем итог, как его и оставили
-    if (this.answered === this.Q.length && this.answered > 0) this.finish(false);
+    if (this.answered === this.live && this.answered > 0) this.finish(false);
   };
 
   /* --- записываем один ответ сразу, не дожидаясь конца занятия --- */
@@ -697,7 +752,7 @@ window.SASMO = (function () {
 
     var rec = recFor(setId);
     rec.answers[i] = { g: given === undefined ? null : given, ok: !!good };
-    rec.total = this.Q.length;
+    rec.total = this.live;
     rec.ok = 0;
     rec.no = 0;
     Object.keys(rec.answers).forEach(function (k) {
@@ -722,7 +777,7 @@ window.SASMO = (function () {
       left: this.left,
       at: Date.now()
     };
-    rec.total = this.Q.length;
+    rec.total = this.live;
     putRecord(this.cfg.setId, rec);
   };
 
@@ -838,7 +893,7 @@ window.SASMO = (function () {
       if (btn) btn.remove();
       if (!good) {
         var e = document.getElementById('e' + i);
-        e.innerHTML = '<b>Правильный ответ: ' + q.ans + '.</b> ' + e.innerHTML;
+        e.innerHTML = '<b>' + t('Правильный ответ: {a}.', { a: q.ans }) + '</b> ' + e.innerHTML;
       }
     } else {
       var chosen = document.getElementById('o' + i + '_' + this.given[i]);
@@ -864,13 +919,14 @@ window.SASMO = (function () {
     this.updateHeader();
     if (this.stepOn) this.showStep();
 
-    if (!restoring && this.answered === this.Q.length) this.finish(false);
+    if (!restoring && this.answered === this.live) this.finish(false);
   };
 
   /* --- пересчёт заполненности в экзамене --- */
   Quiz.prototype.recount = function () {
     var filled = 0;
     for (var i = 0; i < this.Q.length; i++) {
+      if (this.Q[i].skip) continue;
       if (this.Q[i].type === 'open') {
         var inp = document.getElementById('in' + i);
         if (inp && parseNum(inp.value) !== null) filled++;
@@ -885,20 +941,20 @@ window.SASMO = (function () {
 
   Quiz.prototype.updateHeader = function () {
     var pf = document.getElementById('pf');
-    if (pf) pf.style.width = (this.answered / this.Q.length * 100) + '%';
+    if (pf) pf.style.width = (this.answered / this.live * 100) + '%';
 
     var cO = document.getElementById('cO');
     var cN = document.getElementById('cN');
     var cP = document.getElementById('cP');
 
     if (this.cfg.mode === 'exam') {
-      if (cO) cO.textContent = 'Отвечено: ' + this.answered + ' из ' + this.Q.length;
-      if (cN) cN.textContent = 'Пропущено: ' + (this.Q.length - this.answered);
+      if (cO) cO.textContent = t('Отвечено: {a} из {n}', { a: this.answered, n: this.live });
+      if (cN) cN.textContent = t('Пропущено: {n}', { n: this.live - this.answered });
       if (cP) cP.textContent = '';
     } else {
-      if (cO) cO.textContent = this.ok + ' верно';
-      if (cN) cN.textContent = this.no + ' неверно';
-      if (cP) cP.textContent = 'Решено: ' + this.answered + ' из ' + this.Q.length;
+      if (cO) cO.textContent = t('{n} верно', { n: this.ok });
+      if (cN) cN.textContent = t('{n} неверно', { n: this.no });
+      if (cP) cP.textContent = t('Решено: {a} из {n}', { a: this.answered, n: this.live });
     }
   };
 
@@ -916,6 +972,7 @@ window.SASMO = (function () {
 
       for (i = 0; i < this.Q.length; i++) {
         q = this.Q[i];
+        if (q.skip) { results.push({ g: null, ok: null }); continue; }
         if (q.type === 'open') {
           var inp = document.getElementById('in' + i);
           this.given[i] = inp ? inp.value : null;
@@ -934,7 +991,7 @@ window.SASMO = (function () {
           if (el) el.classList.add(good ? 'cok' : 'cno');
           if (!good) {
             var ex = document.getElementById('e' + i);
-            ex.innerHTML = '<b>Правильный ответ: ' + q.ans + '.</b> ' + ex.innerHTML;
+            ex.innerHTML = '<b>' + t('Правильный ответ: {a}.', { a: q.ans }) + '</b> ' + ex.innerHTML;
           }
         } else {
           if (this.given[i] !== null) {
@@ -972,7 +1029,7 @@ window.SASMO = (function () {
 
     // тренировочный режим: раскрываем всё, что осталось не отвеченным
     for (i = 0; i < this.Q.length; i++) {
-      if (!this.checked[i]) {
+      if (!this.checked[i] && !this.Q[i].skip) {
         q = this.Q[i];
         var c = document.getElementById('c' + i);
         c.classList.add('done', 'no');
@@ -982,7 +1039,7 @@ window.SASMO = (function () {
           var b = c.querySelector('[data-act="check"]');
           if (b) b.remove();
           var e2 = document.getElementById('e' + i);
-          e2.innerHTML = '<b>Правильный ответ: ' + q.ans + '.</b> ' + e2.innerHTML;
+          e2.innerHTML = '<b>' + t('Правильный ответ: {a}.', { a: q.ans }) + '</b> ' + e2.innerHTML;
         } else {
           var r2 = document.getElementById('o' + i + '_' + q.ans);
           if (r2) r2.classList.add('cok');
@@ -993,7 +1050,7 @@ window.SASMO = (function () {
         rememberError(this.cfg.setId, i, q);
       }
     }
-    this.answered = this.Q.length;
+    this.answered = this.live;
     this.updateHeader();
     this.storeDone();
     this.showPracticeResult();
@@ -1010,7 +1067,7 @@ window.SASMO = (function () {
     rec.done = true;
     rec.ok = this.ok;
     rec.no = this.no;
-    rec.total = this.Q.length;
+    rec.total = this.live;
     rec.date = today();
     if (typeof score === 'number') rec.score = score;
     delete rec.exam;                       // попытка доведена до конца, продолжать нечего
@@ -1027,21 +1084,23 @@ window.SASMO = (function () {
   };
 
   Quiz.prototype.showPracticeResult = function () {
-    var pct = Math.round(this.ok / this.Q.length * 100);
-    var grade = pct >= 90 ? '🌟 Отлично!'
-              : pct >= 70 ? '👍 Хорошо!'
-              : pct >= 50 ? '💬 Неплохо, разбери ошибки.'
-              : '💪 Тема ещё не села — вернись к ней завтра.';
+    var pct = Math.round(this.ok / this.live * 100);
+    var grade = t(pct >= 90 ? '🌟 Отлично!'
+                : pct >= 70 ? '👍 Хорошо!'
+                : pct >= 50 ? '💬 Неплохо, разбери ошибки.'
+                : '💪 Тема ещё не села — вернись к ней завтра.');
 
-    document.getElementById('fs').textContent = this.ok + ' / ' + this.Q.length;
-    document.getElementById('fd').innerHTML = grade + '<br>Верных: ' + this.ok + ' · Неверных: ' + this.no;
+    document.getElementById('fs').textContent = this.ok + ' / ' + this.live;
+    document.getElementById('fd').innerHTML =
+      grade + '<br>' + t('Верных: {a} · Неверных: {b}', { a: this.ok, b: this.no });
     document.getElementById('bd').innerHTML = this.no > 0
-      ? '<div class="breakdown">Ошибки записаны в журнал. Разбери их сейчас, ' +
-        'а через пару дней прорешай заново на странице «Работа над ошибками».</div>'
+      ? '<div class="breakdown">' +
+        t('Ошибки записаны в журнал. Разбери их сейчас, а через пару дней прорешай заново на странице «Работа над ошибками».') +
+        '</div>'
       : '';
     document.getElementById('resActions').innerHTML =
-      '<a class="btn" href="' + HUB_HREF + '">← К плану</a>' +
-      (this.no > 0 ? '<a class="btn sec" href="' + ERRORS_HREF + '">Журнал ошибок</a>' : '');
+      '<a class="btn" href="' + HUB_HREF + '">' + t('← К плану') + '</a>' +
+      (this.no > 0 ? '<a class="btn sec" href="' + ERRORS_HREF + '">' + t('Журнал ошибок') + '</a>' : '');
     this.showPanel();
   };
 
@@ -1050,9 +1109,9 @@ window.SASMO = (function () {
 
     // Пороги приблизительные: награды раздают по процентилям,
     // и реальные границы меняются от года к году.
-    var grade = '💪 Продолжаем работать';
-    for (var t = 0; t < R.tiers.length; t++) {
-      if (score >= R.tiers[t][0]) { grade = R.tiers[t][1]; break; }
+    var grade = t('💪 Продолжаем работать');
+    for (var k = 0; k < R.tiers.length; k++) {
+      if (score >= R.tiers[k][0]) { grade = R.tiers[k][1]; break; }
     }
 
     /* «+2» и «−1» — как правила выглядят в подписи к секции.
@@ -1060,39 +1119,41 @@ window.SASMO = (function () {
     function sign(n) { return n < 0 ? '−' + (-n) : '+' + n; }
 
     function line(name, ok, no, rule) {
-      return '<div>' + name + ': ' + ok + ' верно (' + sign(ok * rule.ok) + ')' +
-             (rule.no ? ', ' + no + ' неверно (' + sign(no * rule.no) + ')'
-                      : ', ' + no + ' неверно (0)') +
-             ' → <b>' + (ok * rule.ok + no * rule.no) + '</b></div>';
+      return '<div>' + t('{name}: {ok} верно ({sok}), {no} неверно ({sno}) → <b>{sum}</b>', {
+        name: name, ok: ok, sok: sign(ok * rule.ok),
+        no: no, sno: rule.no ? sign(no * rule.no) : '0',
+        sum: ok * rule.ok + no * rule.no
+      }) + '</div>';
     }
 
-    var bTotal = this.Q.length - R.split;
+    var bTotal = liveIn(this.Q, R.split, this.Q.length);
     var bBlank = bTotal - bOk - bNo;
 
     document.getElementById('fs').textContent = score + ' / ' + R.max;
     document.getElementById('fd').innerHTML =
-      grade + ' <small>(ориентир — пороги зависят от года)</small><br>' +
-      (byTimer ? '<b>Время вышло.</b> ' : '') +
-      'Верных: ' + this.ok + ' · Неверных: ' + this.no + ' · Пропущено: ' + blank;
+      grade + ' <small>' + t('(ориентир — пороги зависят от года)') + '</small><br>' +
+      (byTimer ? t('<b>Время вышло.</b> ') : '') +
+      t('Верных: {a} · Неверных: {b} · Пропущено: {c}', { a: this.ok, b: this.no, c: blank });
 
     document.getElementById('bd').innerHTML =
       '<div class="breakdown">' +
-        (R.start ? '<div>Стартовые баллы: <b>+' + R.start + '</b></div>' : '') +
-        line(R.aName || 'Секция A', aOk, aNo, R.a) +
-        line(R.bName || 'Секция B', bOk, bNo, R.b) +
+        (R.start ? '<div>' + t('Стартовые баллы: <b>+{n}</b>', { n: R.start }) + '</div>' : '') +
+        line(R.aName || t('Секция A'), aOk, aNo, R.a) +
+        line(R.bName || t('Секция B'), bOk, bNo, R.b) +
         '<div style="border-top:1px solid #ccc;margin-top:.35rem;padding-top:.35rem">' +
-             'Итого: <b>' + score + '</b> из ' + R.max + '</div>' +
+             t('Итого: <b>{s}</b> из {m}', { s: score, m: R.max }) + '</div>' +
         (bBlank > 0 && R.b.no === 0
-          ? '<div style="color:#b9770e;margin-top:.35rem">⚠️ В открытых задачах ' +
-            (bBlank === 1 ? 'осталась <b>1</b> пустая'
-                          : 'осталось <b>' + bBlank + '</b> пустых') +
-            '. За неверный ответ там не снимают — пиши число всегда.</div>'
+          ? '<div style="color:#b9770e;margin-top:.35rem">' +
+            (bBlank === 1
+              ? t('⚠️ В открытых задачах осталась <b>1</b> пустая. За неверный ответ там не снимают — пиши число всегда.')
+              : t('⚠️ В открытых задачах осталось <b>{n}</b> пустых. За неверный ответ там не снимают — пиши число всегда.', { n: bBlank })) +
+            '</div>'
           : '') +
       '</div>';
 
     document.getElementById('resActions').innerHTML =
-      '<a class="btn" href="' + HUB_HREF + '">← К плану</a>' +
-      '<a class="btn sec" href="' + ERRORS_HREF + '">Разобрать ошибки</a>';
+      '<a class="btn" href="' + HUB_HREF + '">' + t('← К плану') + '</a>' +
+      '<a class="btn sec" href="' + ERRORS_HREF + '">' + t('Разобрать ошибки') + '</a>';
     this.showPanel();
   };
 

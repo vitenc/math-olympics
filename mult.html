@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Таблица умножения на скорость — Grade 2</title>
+<link rel="stylesheet" href="assets/quiz.css?v=2">
+</head>
+<body class="mult">
+
+<div class="header">
+  <div class="logo brand"></div>
+  <div class="sub" data-i18n="Grade 2 &bull; тренажёр">Grade 2 &bull; тренажёр</div>
+  <h2 data-i18n="Таблица умножения на скорость">Таблица умножения на скорость</h2>
+  <div class="crumb"><a href="index.html?g=2" data-i18n="← весь план">← весь план</a></div>
+  <div class="pbar"><div class="pfill" id="pf"></div></div>
+  <div class="scores">
+    <span class="s-ok" id="cO"></span>
+    <span class="s-no" id="cN"></span>
+    <span class="s-pt" id="cP"></span>
+  </div>
+</div>
+
+<div class="container">
+  <div id="warn"></div>
+  <div id="box"></div>
+</div>
+
+<script src="assets/i18n.js"></script>
+<script src="assets/quiz.js?v=2"></script>
+<script src="assets/mult.js?v=2"></script>
+<script>
+(function () {
+  var t = I18N.t;
+  document.title = t('Таблица умножения на скорость — Grade 2');
+  if (!SASMO.storageWorks()) {
+    document.getElementById('warn').innerHTML =
+      '<div class="note warm"><h3>' + t('Статистика не будет сохраняться') + '</h3>' +
+      '<p>' + t('Браузер не разрешает этой странице хранить данные — так бывает в режиме инкогнито. Тренироваться можно, но карта таблицы пропадёт после закрытия вкладки.') + '</p></div>';
+  }
+  MULT.start(document.getElementById('box'));
+})();
+</script>
+</body>
+</html>

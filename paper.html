@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Олимпиада целиком</title>
+<link rel="stylesheet" href="assets/quiz.css">
+</head>
+<body>
+
+<div class="header">
+  <div class="logo brand"></div>
+  <div class="sub" id="sub"></div>
+  <h2 id="ttl">Олимпиада целиком</h2>
+  <div class="crumb"><a href="index.html#papers">← весь план</a></div>
+  <div id="timer" class="timer" style="display:none"></div>
+  <div class="pbar"><div class="pfill" id="pf"></div></div>
+  <div class="scores">
+    <span class="s-ok" id="cO"></span>
+    <span class="s-no" id="cN"></span>
+    <span class="s-pt" id="cP"></span>
+  </div>
+</div>
+
+<div class="container">
+  <div id="gate">
+    <div id="rules"></div>
+    <div id="attempt"></div>
+    <div style="text-align:center">
+      <button class="btn" id="startBtn">▶ Начать работу</button>
+      <button class="btn sec" id="practiceBtn">📖 Прорешать без таймера</button>
+    </div>
+    <p class="hint-line">Без таймера ответ проверяется сразу и есть подсказка —
+      так работу разбирают после экзамена или готовятся к ней спокойно.
+      Баллы считаются только в режиме с таймером.</p>
+  </div>
+
+  <div id="box"></div>
+</div>
+
+<script src="assets/i18n.js"></script>
+<script src="assets/fig.js"></script>
+<script src="assets/quiz.js"></script>
+<script src="assets/paper.js"></script>
+<script>
+(function () {
+  var params = new URLSearchParams(location.search);
+  var paper = SASMO_PAPER.byId(params.get('p'));
+  var who = params.get('who');
+  var gate = document.getElementById('gate');
+
+  function oops(html) {
+    document.getElementById('timer').style.display = 'none';
+    gate.innerHTML = '<div class="empty">' + html +
+                     '<br><br><a class="btn" href="index.html#papers">К олимпиадам</a></div>';
+  }
+
+  if (!paper) { oops('Такой работы нет в каталоге.'); return; }
+
+  var name = paper.olympiad + ' ' + paper.year;
+  document.getElementById('ttl').textContent = name;
+  document.title = name;
+  document.getElementById('sub').textContent =
+    'работа ' + paper.year + ' · ' + paper.grade + ' класс';
+
+  /* За работой садятся разные дети, и прогресс у каждого свой. Кто именно —
+     страница не угадывает: без ?who=… она сначала спрашивает. */
+  if (!window.SOLVERS[who]) {
+    var pick = Object.keys(window.SOLVERS).map(function (k) {
+      return '<a class="btn" href="paper.html?p=' + paper.id + '&who=' + k + '">' +
+             window.SOLVERS[k].name + '</a>';
+    }).join(' ');
+    document.getElementById('timer').style.display = 'none';
+    gate.innerHTML =
+      '<div class="note warm"><h3>Кто решает ' + name + '?</h3>' +
+      '<p>У каждого свой прогресс и свой журнал ошибок — один не перебьёт ' +
+      'результаты другого.</p></div>' +
+      '<div style="text-align:center">' + pick + '</div>';
+    return;
+  }
+
+  document.getElementById('sub').textContent =
+    'работа ' + paper.year + ' · ' + paper.grade + ' класс · ' + window.SOLVERS[who].name;
+  document.getElementById('startBtn').textContent =
+    '▶ Начать работу (' + paper.minutes + ' минут)';
+
+  SASMO_PAPER.openById(paper.id, who);
+})();
+</script>
+</body>
+</html>

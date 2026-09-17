@@ -3,17 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SASMO — пробный экзамен</title>
+<title>Пробный экзамен</title>
 <link rel="stylesheet" href="assets/quiz.css">
 </head>
 <body>
 
 <div class="header">
-  <div class="logo">
-    <span class="l1">S</span><span class="l2">A</span><span class="l3">S</span><span class="l4">M</span><span class="l5">O</span>
-  </div>
-  <div class="sub">пробный экзамен</div>
-  <h2 id="ttl">Пробный экзамен</h2>
+  <div class="logo brand"></div>
+  <div class="sub" data-i18n="пробный экзамен">пробный экзамен</div>
+  <h2 id="ttl" data-i18n="Пробный экзамен">Пробный экзамен</h2>
   <div class="crumb"><a href="index.html">← весь план</a></div>
   <div id="timer" class="timer" style="display:none">⏱ 90:00</div>
   <div class="pbar"><div class="pfill" id="pf"></div></div>
@@ -26,7 +24,7 @@
 
 <div class="container">
   <div id="gate">
-    <div class="note warm">
+    <div class="note warm" data-i18n="examgate">
       <h3>Читаем правила вместе — и только потом нажимаем «Начать»</h3>
       <ul>
         <li><b>25 задач, 90 минут, без калькулятора.</b> Черновик — обычный лист бумаги.</li>
@@ -43,19 +41,21 @@
     </div>
     <div id="attempt"></div>
     <div style="text-align:center">
-      <button class="btn" id="startBtn">▶ Начать экзамен (90 минут)</button>
+      <button class="btn" id="startBtn" data-i18n="▶ Начать экзамен (90 минут)">▶ Начать экзамен (90 минут)</button>
     </div>
   </div>
 
   <div id="box"></div>
 </div>
 
+<script src="assets/i18n.js"></script>
 <script src="assets/plan.js"></script>
 <script src="assets/plan2.js"></script>
 <script src="assets/fig.js"></script>
 <script src="assets/quiz.js"></script>
 <script>
 (function () {
+  var t = I18N.t;
   var params = new URLSearchParams(location.search);
   var PLAN = window.PLANS[params.get('g') === '2' ? 2 : 3];
   SASMO.usePlan(PLAN);
@@ -69,22 +69,25 @@
   var day = null;
   PLAN.days.forEach(function (x) { if (x.id === setId) day = x; });
   if (!day) {
-    gate.innerHTML = '<div class="empty">Такого экзамена нет. ' +
-                     '<a href="' + hub + '">К плану</a>.</div>';
+    gate.innerHTML = '<div class="empty">' + t('Такого экзамена нет.') + ' ' +
+                     '<a href="' + hub + '">' + t('К плану') + '</a>.</div>';
     return;
   }
   var varName = day.v;
-  document.querySelector('.crumb').innerHTML = '<a href="' + hub + '">← весь план</a>';
+  var title = I18N.pick(day, 'title');
+  document.querySelector('.crumb').innerHTML = '<a href="' + hub + '">' + t('← весь план') + '</a>';
 
-  document.getElementById('ttl').textContent = day.title;
-  document.title = day.title + ' — SASMO';
+  document.getElementById('ttl').textContent = title;
+  document.title = t('{title} — {brand}', { title: title, brand: BRAND.name });
 
   var s = document.createElement('script');
   s.src = PLAN.dir + setId + '.js';
 
   s.onerror = function () {
-    gate.innerHTML = '<div class="empty">Не удалось загрузить <code>' + PLAN.dir + setId + '.js</code>.<br>' +
-                     'Похоже, этот экзамен ещё не готов. <a href="' + hub + '">К плану</a>.</div>';
+    gate.innerHTML = '<div class="empty">' +
+                     t('Не удалось загрузить <code>{file}</code>.<br>Похоже, этот экзамен ещё не готов.',
+                       { file: PLAN.dir + setId + '.js' }) +
+                     ' <a href="' + hub + '">' + t('К плану') + '</a>.</div>';
   };
 
   s.onload = function () {
@@ -102,19 +105,20 @@
 
     var notes = '';
     if (rec && rec.done) {
-      notes += '<div class="resume"><div>Экзамен уже сдан: <b>' + rec.score + ' из 85</b>' +
-               (rec.date ? ' · ' + rec.date : '') +
-               '. Можно пройти его ещё раз — прошлый результат перезапишется.</div></div>';
+      notes += '<div class="resume"><div>' +
+               t('Экзамен уже сдан: <b>{s} из 85</b>{date}. Можно пройти его ещё раз — прошлый результат перезапишется.',
+                 { s: rec.score, date: rec.date ? ' · ' + rec.date : '' }) +
+               '</div></div>';
     }
     if (att) {
-      notes += '<div class="resume"><div>Прошлая попытка не закончена: отвечено <b>' +
-                 SASMO.startedCount(rec) + ' из 25</b>, на часах осталось <b>' +
-                 SASMO.mmss(left) + '</b>.</div>' +
+      notes += '<div class="resume"><div>' +
+                 t('Прошлая попытка не закончена: отвечено <b>{a} из 25</b>, на часах осталось <b>{t}</b>.',
+                   { a: SASMO.startedCount(rec), t: SASMO.mmss(left) }) + '</div>' +
                  '<button class="mini" id="wipeAttempt" ' +
-                   'data-armed-text="Нажми ещё раз — попытка сотрётся">Стереть попытку</button>' +
+                   'data-armed-text="Нажми ещё раз — попытка сотрётся">' + t('Стереть попытку') + '</button>' +
                '</div>';
       document.getElementById('startBtn').textContent =
-        '▶ Продолжить экзамен (осталось ' + SASMO.mmss(left) + ')';
+        t('▶ Продолжить экзамен (осталось {t})', { t: SASMO.mmss(left) });
     }
     document.getElementById('attempt').innerHTML = notes;
 

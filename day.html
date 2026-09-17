@@ -3,17 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SASMO — занятие дня</title>
+<title>Занятие дня</title>
 <link rel="stylesheet" href="assets/quiz.css">
 </head>
 <body>
 
 <div class="header">
-  <div class="logo">
-    <span class="l1">S</span><span class="l2">A</span><span class="l3">S</span><span class="l4">M</span><span class="l5">O</span>
-  </div>
-  <div class="sub" id="sub">занятие</div>
-  <h2 id="ttl">Загружаем задачи…</h2>
+  <div class="logo brand"></div>
+  <div class="sub" id="sub" data-i18n="занятие">занятие</div>
+  <h2 id="ttl" data-i18n="Загружаем задачи…">Загружаем задачи…</h2>
   <div class="crumb"><a href="index.html">← весь план</a></div>
   <div class="pbar"><div class="pfill" id="pf"></div></div>
   <div class="scores">
@@ -29,12 +27,14 @@
   <div id="box"><div class="empty">Загружаем задачи…</div></div>
 </div>
 
+<script src="assets/i18n.js"></script>
 <script src="assets/plan.js"></script>
 <script src="assets/plan2.js"></script>
 <script src="assets/fig.js"></script>
 <script src="assets/quiz.js"></script>
 <script>
 (function () {
+  var t = I18N.t;
   var params = new URLSearchParams(location.search);
   var PLAN = window.PLANS[params.get('g') === '2' ? 2 : 3];
   SASMO.usePlan(PLAN);
@@ -46,15 +46,16 @@
   var hub = 'index.html' + (PLAN.grade === 3 ? '' : '?g=' + PLAN.grade);
 
   if (!day || day.kind === 'exam' || day.kind === 'review') {
-    box.innerHTML = '<div class="empty">Такого занятия нет. ' +
-                    '<a href="' + hub + '">Вернуться к плану</a>.</div>';
+    box.innerHTML = '<div class="empty">' + t('Такого занятия нет.') + ' ' +
+                    '<a href="' + hub + '">' + t('Вернуться к плану') + '</a>.</div>';
     return;
   }
 
-  document.querySelector('.crumb').innerHTML = '<a href="' + hub + '">← весь план</a>';
-  document.getElementById('sub').textContent = PLAN.label + ' · день ' + day.d + ' из 28';
-  document.getElementById('ttl').textContent = day.title;
-  document.title = 'День ' + day.d + ' — ' + day.title;
+  var title = I18N.pick(day, 'title');
+  document.querySelector('.crumb').innerHTML = '<a href="' + hub + '">' + t('← весь план') + '</a>';
+  document.getElementById('sub').textContent = t('{label} · день {d} из 28', { label: PLAN.label, d: day.d });
+  document.getElementById('ttl').textContent = title;
+  document.title = t('День {d} — {title}', { d: day.d, title: title });
 
   // Данные лежат в .js, а не .json: на file:// fetch заблокирован,
   // а подключение <script> работает и без локального сервера.
@@ -62,9 +63,10 @@
   s.src = PLAN.dir + day.id + '.js';
 
   s.onerror = function () {
-    box.innerHTML = '<div class="empty">Не удалось загрузить <code>' + PLAN.dir + day.id + '.js</code>.<br>' +
-                    'Похоже, задачи для этого дня ещё не готовы. ' +
-                    '<a href="' + hub + '">К плану</a>.</div>';
+    box.innerHTML = '<div class="empty">' +
+                    t('Не удалось загрузить <code>{file}</code>.<br>Похоже, задачи для этого дня ещё не готовы.',
+                      { file: PLAN.dir + day.id + '.js' }) +
+                    ' <a href="' + hub + '">' + t('К плану') + '</a>.</div>';
   };
 
   s.onload = function () {
@@ -76,7 +78,8 @@
 
     if (data.intro) {
       document.getElementById('intro').innerHTML =
-        '<div class="note"><h3>' + data.intro.title + '</h3>' + data.intro.body + '</div>';
+        '<div class="note"><h3>' + I18N.pick(data.intro, 'title') + '</h3>' +
+        I18N.pick(data.intro, 'body') + '</div>';
     }
 
     // Прогресс сохраняется по каждой задаче, поэтому день можно бросить на
@@ -86,12 +89,13 @@
     var total = data.questions.length;
 
     if (rec && rec.done) {
-      showResume('День уже пройден: <b>' + rec.ok + ' из ' + rec.total + '</b>' +
-                 (rec.date ? ' · ' + rec.date : '') +
-                 '. Ответы ниже — те же, что и в тот раз.', 'Пройти день заново');
+      showResume(t('День уже пройден: <b>{ok} из {n}</b>{date}. Ответы ниже — те же, что и в тот раз.',
+                   { ok: rec.ok, n: rec.total, date: rec.date ? ' · ' + rec.date : '' }),
+                 t('Пройти день заново'));
     } else if (started > 0) {
-      showResume('Продолжаем с того места: решено <b>' + started + ' из ' + total + '</b>. ' +
-                 'Решай оставшиеся — всё, что уже сделано, сохранено.', 'Начать день заново');
+      showResume(t('Продолжаем с того места: решено <b>{a} из {n}</b>. Решай оставшиеся — всё, что уже сделано, сохранено.',
+                   { a: started, n: total }),
+                 t('Начать день заново'));
     }
 
     box.innerHTML = '';

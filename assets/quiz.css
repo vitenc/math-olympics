@@ -113,6 +113,11 @@ body {
 .qcard.ok { border-color: var(--green); background: var(--green-bg); }
 .qcard.no { border-color: var(--wrong-red); background: var(--wrong-bg); }
 .qcard.done .opt { pointer-events: none; }
+/* Задача прошлой олимпиады, к которой ответ не восстановлен: показываем
+   условие и рисунок, но ни ответа, ни баллов у неё нет. */
+.qcard.skip { border-style: dashed; background: #fafbfc; }
+.qcard.skip .qn, .qcard.skip .qt { color: #6b7680; }
+.skipnote { margin-top: .6rem; font-size: .92rem; }
 
 .q-left { flex: 1; min-width: 0; }
 .q-right {
@@ -424,6 +429,8 @@ body.has-stepnav { padding-bottom: 5.2rem; }
 .stepmap .cell.ok   { border-color: var(--green); color: var(--green); background: var(--green-bg); }
 .stepmap .cell.no   { border-color: var(--wrong-red); color: var(--wrong-red); background: var(--wrong-bg); }
 .stepmap .cell.at   { outline: 3px solid var(--amber); outline-offset: 1px; }
+/* Задача без восстановленного ответа: в карте она серая и не просит ответа */
+.stepmap .cell.skip { border-style: dashed; color: #9aa4ad; background: #f4f6f8; }
 
 .mapfoot {
   display: flex; align-items: center; gap: .7rem; flex-wrap: wrap;
@@ -446,3 +453,199 @@ body.has-stepnav { padding-bottom: 5.2rem; }
   .header h2 { font-size: .88rem; }
   .stepmap .grid { grid-template-columns: repeat(5, 1fr); }
 }
+
+/* ==========================================================================
+   ТРЕНАЖЁР ТАБЛИЦЫ УМНОЖЕНИЯ (mult.html)
+   ========================================================================== */
+
+.mset {
+  background: var(--card); border-radius: 14px; padding: 1rem;
+  margin-bottom: 1rem; box-shadow: 0 2px 10px rgba(0,0,0,.06); text-align: center;
+}
+.mrow { margin-bottom: .9rem; }
+.mlbl {
+  font-size: .72rem; font-weight: 900; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 1px; margin-bottom: .35rem;
+}
+.chips { display: flex; flex-wrap: wrap; gap: .35rem; justify-content: center; }
+.chips .vbtn { font-size: .95rem; padding: .35rem .9rem; min-width: 3rem; touch-action: manipulation; }
+.chips .vbtn small { font-size: .7rem; font-weight: 700; opacity: .8; }
+.mquick { margin-top: .35rem; display: flex; gap: .8rem; justify-content: center; flex-wrap: wrap; }
+.mquick button {
+  font-family: inherit; background: none; border: none; color: var(--blue);
+  font-weight: 800; font-size: .78rem; cursor: pointer; text-decoration: underline dotted;
+}
+.mgo { font-size: 1.15rem; padding: .8rem 2.8rem; }
+.mkeys { font-size: .72rem; font-weight: 700; color: #999; margin-top: .2rem; }
+
+/* экран примера */
+.mplay {
+  background: var(--card); border-radius: 16px; padding: 1rem 1rem 1.1rem;
+  box-shadow: 0 2px 10px rgba(0,0,0,.06); max-width: 560px; margin: 0 auto; text-align: center;
+}
+.mbar { height: 14px; background: #e3e3e3; border-radius: 999px; overflow: hidden; }
+.mfill { height: 100%; width: 100%; background: var(--green); border-radius: 999px; }
+.mfill.warn { background: var(--amber); }
+.mfill.crit { background: var(--wrong-red); }
+.mleft {
+  font-size: .8rem; font-weight: 800; color: var(--muted); margin-top: .25rem;
+  min-height: 1.2em; font-variant-numeric: tabular-nums;
+}
+.mexpr {
+  font-size: clamp(2.6rem, 13vw, 4.2rem); font-weight: 900; line-height: 1.1;
+  margin: .5rem 0 1rem; font-variant-numeric: tabular-nums;
+}
+.mopts { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
+.mopt {
+  font-family: inherit; font-size: clamp(1.6rem, 8vw, 2.2rem); font-weight: 900;
+  min-height: 4.5rem; padding: .6rem .5rem; border: 3px solid #ccc; border-radius: 14px;
+  background: #fff; color: var(--text); cursor: pointer; touch-action: manipulation;
+  font-variant-numeric: tabular-nums; transition: border-color .12s, background .12s, transform .1s;
+}
+@media (hover: hover) { .mopt:hover { border-color: var(--blue); } }
+.mopt:active { transform: scale(.97); }
+.mopts.locked .mopt { pointer-events: none; }
+.mopts.locked .mopt:not(.cok):not(.cno) { opacity: .4; }
+.mopt.cok { border-color: var(--green); background: var(--green-bg); color: var(--green); }
+.mopt.cno { border-color: var(--wrong-red); background: var(--wrong-bg); color: var(--wrong-red); text-decoration: line-through; }
+.mmsg { min-height: 2.2rem; margin-top: .8rem; font-size: 1.2rem; font-weight: 900; }
+.mmsg.ok { color: var(--green); }
+.mmsg.no { color: var(--wrong-red); }
+.mfoot { text-align: center; margin-top: .9rem; }
+
+/* карта таблицы */
+.mmap { background: var(--card); border-radius: 14px; padding: 1rem; margin-bottom: 1rem; text-align: center; }
+.mmap h3 { font-size: .95rem; color: var(--blue); }
+.mmap .sum { font-size: .82rem; font-weight: 700; color: var(--muted); margin-bottom: .6rem; }
+.mscroll { overflow-x: auto; }
+.mtab { border-collapse: separate; border-spacing: 3px; margin: 0 auto; font-variant-numeric: tabular-nums; }
+.mtab th { font-size: .8rem; font-weight: 900; color: var(--red); width: 2.3rem; }
+.mtab td {
+  width: 2.3rem; height: 2.1rem; text-align: center; font-size: .82rem; font-weight: 800;
+  border-radius: 7px; background: #eee; color: #aaa;
+}
+.mlegend {
+  display: flex; flex-wrap: wrap; gap: .3rem .9rem; justify-content: center;
+  font-size: .75rem; font-weight: 700; color: var(--muted); margin-top: .6rem;
+}
+.mlegend i {
+  display: inline-block; width: .9rem; height: .9rem; border-radius: 4px;
+  vertical-align: -2px; margin-right: .3rem; background: #eee;
+}
+.mtab td.bad,  .mlegend i.bad  { background: var(--wrong-bg); color: var(--wrong-red); box-shadow: inset 0 0 0 2px #f0b2ad; }
+.mtab td.slow, .mlegend i.slow { background: #fff6e5; color: #b9770e; box-shadow: inset 0 0 0 2px #f5cd79; }
+.mtab td.good, .mlegend i.good { background: var(--green-bg); color: var(--green); box-shadow: inset 0 0 0 2px #a9dfbf; }
+
+.mrounds ul { margin-bottom: .6rem; }
+
+/* итог раунда */
+.mtrouble { max-width: 520px; margin: 0 auto 1rem; }
+.mtrouble h3 { font-size: .9rem; margin-top: .4rem; }
+.mfacts { display: flex; flex-wrap: wrap; gap: .4rem; justify-content: center; margin: .35rem 0; }
+.mfact {
+  font-weight: 900; font-size: 1rem; padding: .3rem .7rem; border-radius: 10px;
+  border: 2px solid #f0b2ad; background: var(--wrong-bg); color: var(--wrong-red);
+  font-variant-numeric: tabular-nums;
+}
+.mfact.slow { border-color: #f5cd79; background: #fff6e5; color: #b9770e; }
+.mhint { font-size: .8rem; color: var(--muted); font-weight: 700; }
+
+/* ----- телефон и планшет ------------------------------------------------
+   За тренажёром сидит второклассник с пальцем, а не взрослый с мышкой:
+   на сенсорных и узких экранах всё крупнее. Во время раунда шапка сжимается
+   до полоски прогресса, чтобы пример и ответы заняли экран целиком. */
+@media (pointer: coarse), (max-width: 900px) {
+  .mult .note { font-size: 1rem; }
+  .mult .note h3 { font-size: 1.15rem; }
+
+  .mrow { margin-bottom: 1.3rem; }
+  .mlbl { font-size: .9rem; margin-bottom: .5rem; }
+  .chips { gap: .5rem; }
+  .chips .vbtn {
+    font-size: 1.3rem; padding: .5rem .9rem; min-width: 4rem; min-height: 3.3rem;
+    border-width: 3px; border-radius: 16px; line-height: 1.15;
+  }
+  .chips .vbtn small { display: block; font-size: .8rem; }
+  .mquick { gap: 1.4rem; margin-top: .7rem; }
+  .mquick button { font-size: 1.05rem; padding: .3rem 0; }
+  .mgo { font-size: 1.5rem; padding: 1rem 3.2rem; }
+  .mkeys { display: none; }
+
+  body.mplaying .header .logo,
+  body.mplaying .header .sub,
+  body.mplaying .header h2,
+  body.mplaying .header .crumb { display: none; }
+  body.mplaying .header .pbar { margin-top: 0; height: 10px; }
+  body.mplaying .header .scores { font-size: 1.05rem; }
+
+  .mplay { max-width: 760px; padding: 1rem; }
+  .mbar { height: 20px; }
+  .mleft { font-size: 1.15rem; }
+  .mexpr { font-size: clamp(3.2rem, min(20vw, 13vh), 7.5rem); margin: .3rem 0 1rem; }
+  .mopts { gap: .8rem; }
+  .mopt {
+    font-size: clamp(2.2rem, min(10vw, 7vh), 4rem); min-height: clamp(5rem, 16vh, 10rem);
+    border-width: 4px; border-radius: 18px;
+  }
+  .mmsg { font-size: clamp(1.4rem, 5vw, 2rem); min-height: 3rem; }
+
+  .mmap h3 { font-size: 1.25rem; }
+  .mmap .sum { font-size: 1.05rem; }
+  .mtab { width: 100%; max-width: 680px; table-layout: fixed; border-spacing: 4px; }
+  .mtab th { width: auto; font-size: clamp(1rem, 3.6vw, 1.45rem); }
+  .mtab td {
+    width: auto; height: clamp(2.6rem, 9vw, 4rem);
+    font-size: clamp(1rem, 3.8vw, 1.5rem); border-radius: 8px;
+  }
+  .mlegend { font-size: .95rem; gap: .5rem 1.2rem; }
+  .mlegend i { width: 1.1rem; height: 1.1rem; }
+  .mrounds li { font-size: 1rem; }
+
+  .mult .rp h2 { font-size: 1.7rem; }
+  .mult .fs { font-size: 3.8rem; }
+  .mult .fd, .mult .breakdown { font-size: 1.05rem; }
+  .mtrouble h3 { font-size: 1.1rem; }
+  .mfact { font-size: 1.35rem; padding: .4rem .9rem; }
+  .mhint { font-size: .95rem; }
+  .mult .btn { font-size: 1.2rem; padding: .9rem 1.8rem; }
+  .mult .mini { font-size: 1rem; padding: .7rem 1.2rem; }
+}
+
+/* узкий телефон: карта таблицы на всю ширину, поля карточек поуже */
+@media (max-width: 480px) {
+  .chips .vbtn { min-width: 3.6rem; padding: .5rem .55rem; }
+  .mmap { padding: .8rem .35rem; }
+  .mtab { border-spacing: 2px; }
+  .mtab td { font-size: clamp(.95rem, 4.3vw, 1.15rem); border-radius: 6px; }
+  .mplay { padding: .8rem .6rem 1rem; }
+  .mopts { gap: .6rem; }
+}
+
+/* ===== БРЕНД, ЯЗЫК, ДЕМО ===== */
+/* Словесный знак вместо букв SASMO: название задаётся в assets/i18n.js */
+.logo.brand { gap: .35rem; font-size: 1.55rem; letter-spacing: -.5px; font-weight: 900; }
+.logo.brand .b1 { color: var(--blue); }
+.logo.brand .b2 {
+  color: #fff; background: var(--red); border-radius: 8px;
+  padding: .05rem .5rem .1rem; font-size: 1.15rem; letter-spacing: .5px;
+}
+
+/* Переключатель языка живёт в углу шапки на каждой странице */
+.langsw {
+  position: absolute; right: .7rem; top: .6rem; display: flex; gap: 2px;
+  font-size: .68rem; font-weight: 800; letter-spacing: 1px;
+}
+.langsw a {
+  color: #999; text-decoration: none; padding: .15rem .45rem; border-radius: 6px;
+  border: 1.5px solid transparent;
+}
+.langsw a:hover { color: var(--blue); }
+.langsw a.on { color: var(--blue); border-color: #cfe0ee; background: #eef4f9; }
+@media (max-width: 500px) { .langsw { top: .45rem; right: .45rem; } }
+
+/* Плашка демо-режима: гость должен видеть, что перед ним образец */
+.demobar {
+  background: #fff6e5; color: #7d5a0a; border-bottom: 2px solid #f5cd79;
+  padding: .4rem 1rem; text-align: center; font-size: .8rem; font-weight: 700;
+}
+.demobar a { color: #b9770e; margin-left: .4rem; }

@@ -3,17 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SASMO — работа над ошибками</title>
+<title>Работа над ошибками</title>
 <link rel="stylesheet" href="assets/quiz.css">
 </head>
 <body>
 
 <div class="header">
-  <div class="logo">
-    <span class="l1">S</span><span class="l2">A</span><span class="l3">S</span><span class="l4">M</span><span class="l5">O</span>
-  </div>
-  <div class="sub">журнал ошибок</div>
-  <h2>Работа над ошибками</h2>
+  <div class="logo brand"></div>
+  <div class="sub" data-i18n="журнал ошибок">журнал ошибок</div>
+  <h2 data-i18n="Работа над ошибками">Работа над ошибками</h2>
   <div class="crumb"><a href="index.html">← весь план</a></div>
   <div class="pbar"><div class="pfill" id="pf"></div></div>
   <div class="scores">
@@ -28,6 +26,7 @@
   <div id="box"></div>
 </div>
 
+<script src="assets/i18n.js"></script>
 <script src="assets/plan.js"></script>
 <script src="assets/plan2.js"></script>
 <script src="assets/fig.js"></script>
@@ -35,6 +34,7 @@
 <script src="assets/paper.js"></script>
 <script>
 (function () {
+  var t = I18N.t;
   var params = new URLSearchParams(location.search);
 
   /* У отдельных работ журнал свой у каждого решающего: за ними сидят разные
@@ -51,17 +51,18 @@
       errorsHref: 'errors.html?who=' + who
     });
     hub = solver.paper;
-    back = '← к работе';
-    hubLabel = 'К работе';
-    document.querySelector('.sub').textContent = 'журнал ошибок · ' + solver.name;
-    document.querySelector('h2').textContent = 'Работа над ошибками — ' + solver.name;
-    document.title = 'Работа над ошибками — ' + solver.name;
+    back = t('← к работе');
+    hubLabel = t('К работе');
+    document.querySelector('.sub').textContent = t('журнал ошибок · {name}', { name: solver.name });
+    document.querySelector('h2').textContent = t('Работа над ошибками — {name}', { name: solver.name });
+    document.title = t('Работа над ошибками — {name}', { name: solver.name });
   } else {
     var PLAN = window.PLANS[params.get('g') === '2' ? 2 : 3];
     SASMO.usePlan(PLAN);
     hub = 'index.html' + (PLAN.grade === 3 ? '' : '?g=' + PLAN.grade);
-    back = '← весь план';
-    hubLabel = 'К плану';
+    back = t('← весь план');
+    hubLabel = t('К плану');
+    document.title = t('Работа над ошибками');
   }
 
   var crumb = document.querySelector('.crumb');
@@ -73,32 +74,35 @@
 
   if (!errors.length) {
     intro.innerHTML =
-      '<div class="empty">Журнал пуст — ошибок пока нет.<br>' +
-      'Он заполнится сам, когда ребёнок ошибётся в задаче.<br><br>' +
-      '<a class="btn" href="' + hub + '">' + hubLabel + '</a></div>';
+      '<div class="empty">' +
+      t('Журнал пуст — ошибок пока нет.<br>Он заполнится сам, когда ребёнок ошибётся в задаче.') +
+      '<br><br><a class="btn" href="' + hub + '">' + hubLabel + '</a></div>';
     return;
   }
 
   // Разбитые по темам — видно, какая тема проседает
   var byTopic = {};
   errors.forEach(function (e) {
-    var t = e.topic || 'Прочее';
-    byTopic[t] = (byTopic[t] || 0) + 1;
+    var q = I18N.localize(e);
+    var tp = q.topic || t('Прочее');
+    byTopic[tp] = (byTopic[tp] || 0) + 1;
   });
   var rows = Object.keys(byTopic).sort(function (a, b) {
     return byTopic[b] - byTopic[a];
-  }).map(function (t) {
-    return '<li><b>' + byTopic[t] + '</b> — ' + t + '</li>';
+  }).map(function (tp) {
+    return '<li><b>' + byTopic[tp] + '</b> — ' + tp + '</li>';
   }).join('');
 
   intro.innerHTML =
     '<div class="note warm">' +
-      '<h3>В журнале ' + errors.length + ' задач(и)</h3>' +
-      '<p style="margin-bottom:.3rem">Решённая заново задача уходит из журнала. ' +
-      'Ошибка остаётся — значит, тему надо разобрать ещё раз.</p>' +
+      '<h3>' + t('В журнале {n} задач(и)', { n: errors.length }) + '</h3>' +
+      '<p style="margin-bottom:.3rem">' +
+      t('Решённая заново задача уходит из журнала. Ошибка остаётся — значит, тему надо разобрать ещё раз.') +
+      '</p>' +
       '<ul>' + rows + '</ul>' +
-      '<p style="margin-top:.4rem"><b>Самая слабая тема сверху.</b> ' +
-      'Именно ей стоит отдать ближайшие 10 минут занятия.</p>' +
+      '<p style="margin-top:.4rem">' +
+      t('<b>Самая слабая тема сверху.</b> Именно ей стоит отдать ближайшие 10 минут занятия.') +
+      '</p>' +
     '</div>';
 
   // Старые ошибки — вперёд: они успели забыться сильнее.

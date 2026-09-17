@@ -21,11 +21,45 @@
   'use strict';
 
   /* Кто решает. Имя показывается в шапке, чтобы ребёнок не открыл чужую
-     страницу; `paper` — куда возвращает журнал ошибок. */
+     страницу; `paper` — куда возвращает журнал ошибок. Работ теперь много,
+     а журнал у решающего один на все, поэтому возвращает он не на страницу
+     одной работы, а в раздел олимпиад на хабе. */
   window.SOLVERS = {
-    dima:   { name: 'Дима',   paper: 'mathxcel_dima.html' },
-    bogdan: { name: 'Богдан', paper: 'mathxcel_bogdan.html' }
+    dima:   { name: 'Дима',   paper: 'index.html#papers' },
+    bogdan: { name: 'Богдан', paper: 'index.html#papers' }
   };
+
+  /* Каталог отдельных работ. Хаб строит из него раздел «Олимпиады прошлых
+     лет», а paper.html открывает работу по ?p=<id>. Добавить работу — дописать
+     сюда строку и положить рядом data/<id>.js; отдельная страница не нужна.
+
+       olympiad — название олимпиады, им же назван раздел на хабе
+       set      — data/<set>.js
+       varName  — окно, в которое набор себя кладёт
+       minutes  — сколько идёт работа
+       grade    — для какого класса работа (хаб показывает только свой)
+       max      — максимум баллов, нужен хабу для строчки результата         */
+  window.PAPERS = [
+    { id: 'sasmo25',    olympiad: 'SASMO', year: 2025, grade: 3,
+      set: 'sasmo25',    varName: 'SASMO25',    minutes: 90, max: 85,
+      note: '25 задач · 90 минут · счёт как на пробных экзаменах' },
+    { id: 'sasmo24',    olympiad: 'SASMO', year: 2024, grade: 3,
+      set: 'sasmo24',    varName: 'SASMO24',    minutes: 90, max: 79,
+      note: '25 задач · 90 минут · к двум задачам ответ не восстановлен' },
+    { id: 'sasmo23',    olympiad: 'SASMO', year: 2023, grade: 3,
+      set: 'sasmo23',    varName: 'SASMO23',    minutes: 90, max: 83,
+      note: '25 задач · 90 минут · к одной задаче ответ не восстановлен' },
+    { id: 'mathxcel24', olympiad: 'MathXCEL', year: 2024, grade: 3,
+      set: 'mathxcel24', varName: 'MATHXCEL24', minutes: 80, max: 55,
+      note: '25 задач · 80 минут · максимум 55 баллов, штрафов нет' }
+  ];
+
+  function byId(id) {
+    for (var i = 0; i < window.PAPERS.length; i++) {
+      if (window.PAPERS[i].id === id) return window.PAPERS[i];
+    }
+    return null;
+  }
 
   /* Ключи хранения свои у каждого: и прогресс, и журнал ошибок.
      Это не то же, что ключи классов в plan.js, — работа вне программы. */
@@ -137,5 +171,15 @@
     document.head.appendChild(s);
   }
 
-  window.SASMO_PAPER = { open: open, keys: keys };
+  /* Открыть работу из каталога: paper.html?p=sasmo25&who=dima.
+     Отличается от open() только тем, что параметры берутся из каталога,
+     а не пишутся в самой странице. */
+  function openById(id, who) {
+    var paper = byId(id);
+    if (!paper) throw new Error('Неизвестная работа: ' + id);
+    open({ who: who, set: paper.set, varName: paper.varName, minutes: paper.minutes });
+    return paper;
+  }
+
+  window.SASMO_PAPER = { open: open, openById: openById, byId: byId, keys: keys };
 })();

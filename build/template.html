@@ -1,4 +1,4 @@
-<title>Месяц до SASMO</title>
+<title>Olympiad Sprint — месяц до олимпиады</title>
 
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700;800&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=Unbounded:wght@700;800&display=swap">
@@ -639,7 +639,7 @@ body.has-stepnav { padding-bottom: 5rem; }
 
 <div class="topbar">
   <div class="topbar-in">
-    <a class="mark" href="#/">SASMO <span class="lvl" id="lvl">Grade 3</span></a>
+    <a class="mark" href="#/">Olympiad Sprint <span class="lvl" id="lvl">Grade 3</span></a>
     <span class="spacer"></span>
     <span id="bar-extra"></span>
   </div>
@@ -1069,7 +1069,7 @@ body.has-stepnav { padding-bottom: 5rem; }
       body = '<div class="opts">' + q.opts.map(function (o, j) {
         return '<button class="opt" type="button" data-act="pick" data-i="' + i + '" data-j="' + j + '" '
              +        'id="o' + i + '_' + j + '">'
-             +   '<span class="letter">' + 'АБВГ'[j] + '</span><span>' + o + '</span>'
+             +   '<span class="letter">' + 'АБВГД'[j] + '</span><span>' + o + '</span>'
              + '</button>';
       }).join('') + '</div>';
     }
@@ -1937,7 +1937,7 @@ body.has-stepnav { padding-bottom: 5rem; }
 
   if (D.label) {
     document.getElementById('lvl').textContent = D.label;
-    document.title = 'Месяц до SASMO · ' + D.label;
+    document.title = 'Olympiad Sprint · ' + D.label;
   }
 
   var local = readLocal();

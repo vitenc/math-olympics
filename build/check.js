@@ -55,6 +55,15 @@ function checkSet(where, data, seen) {
     const at = `${where} #${i + 1}`;
 
       if (!q.q || typeof q.q !== 'string') errors.push(`${at}: пустое условие`);
+
+      /* Задача с `skip` — та, к которой ответ не восстановлен (буклет без
+         ключа). У неё нет ни ответа, ни разбора, и это нормально: проверять
+         в ней нечего, кроме условия и рисунка. */
+      if (q.skip) {
+        if (q.ans !== undefined) errors.push(`${at}: у задачи со skip не должно быть ans`);
+        if (!q.img && !q.fig) warns.push(`${at}: задача без ответа и без рисунка — её не решить`);
+        return;
+      }
       if (!q.topic) warns.push(`${at}: не указана тема`);
       if (!q.ex) warns.push(`${at}: нет разбора`);
       if (!q.hint) warns.push(`${at}: нет подсказки`);
@@ -62,8 +71,10 @@ function checkSet(where, data, seen) {
       const answers = bolds(q.ex);
 
       if (q.type === 'mcq') {
-        if (!Array.isArray(q.opts) || q.opts.length !== 4) {
-          errors.push(`${at}: у варианта ответа должно быть 4 опции, а их ${q.opts ? q.opts.length : 0}`);
+        // Четыре варианта в программе и у MathXCEL, пять — у SASMO (там пятый
+        // «ничего из перечисленного»), больше пяти движок не подпишет буквами
+        if (!Array.isArray(q.opts) || (q.opts.length !== 4 && q.opts.length !== 5)) {
+          errors.push(`${at}: у варианта ответа должно быть 4 или 5 опций, а их ${q.opts ? q.opts.length : 0}`);
         } else if (!Number.isInteger(q.ans) || q.ans < 0 || q.ans >= q.opts.length) {
           errors.push(`${at}: ans=${q.ans} вне списка вариантов`);
         } else {
@@ -131,15 +142,26 @@ function checkGrade(grade) {
 }
 
 /* Отдельные работы: не дни программы, а целые прошлые олимпиады.
-   У каждой свой счёт, поэтому сверяем ещё и правила из поля `rules`. */
+   У каждой свой счёт, поэтому сверяем ещё и правила из поля `rules`.
+
+   У работ SASMO правил нет: счёт у них такой же, как у пробных экзаменов
+   программы, и движок применяет свои по умолчанию — это не забытое поле,
+   поэтому такие работы помечены `sasmo: true` и проверяются по правилам
+   SASMO (секция A — первые 15 задач, выбор ответа; дальше — открытый).      */
+const SASMO_SPLIT = 15;
 const PAPERS = [
+  { id: 'sasmo25',    v: 'SASMO25',    n: 25, label: 'SASMO 2025 / 3 класс', sasmo: true },
+  { id: 'sasmo24',    v: 'SASMO24',    n: 25, label: 'SASMO 2024 / 3 класс', sasmo: true },
+  { id: 'sasmo23',    v: 'SASMO23',    n: 25, label: 'SASMO 2023 / 3 класс', sasmo: true },
   { id: 'mathxcel24', v: 'MATHXCEL24', n: 25, label: 'MathXCEL 2024 / 3 класс' }
 ];
 
 function checkPapers() {
-  const seen = new Map();
-
   for (const paper of PAPERS) {
+    // Дедупликация — внутри одной работы: у разных олимпиад короткие
+    // формулировки вроде «Сколько треугольников на рисунке?» совпадают
+    // законно, рисунки-то разные.
+    const seen = new Map();
     const where = paper.label;
     const file = path.join(ROOT, 'data', paper.id + '.js');
 
@@ -153,7 +175,16 @@ function checkPapers() {
 
     const R = data.rules;
     if (!R) {
-      warns.push(`${where}: нет правил счёта — будут применены правила SASMO`);
+      if (!paper.sasmo) {
+        warns.push(`${where}: нет правил счёта — будут применены правила SASMO`);
+      } else {
+        data.questions.forEach((q, i) => {
+          const want = i < SASMO_SPLIT ? 'mcq' : 'open';
+          if (q.type !== want) {
+            errors.push(`${where} #${i + 1}: тип «${q.type}», а по правилам SASMO должен быть «${want}»`);
+          }
+        });
+      }
     } else {
       // Максимум должен сходиться с ценой задач: иначе ребёнку покажут «60 из 55»
       const calc = (R.start || 0) + R.split * R.a.ok + (data.questions.length - R.split) * R.b.ok;

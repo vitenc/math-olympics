@@ -3,20 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SASMO Grade 3 — подготовка за месяц</title>
+<title>Grade 3 — подготовка за месяц</title>
 <link rel="stylesheet" href="assets/quiz.css">
 </head>
 <body>
 
 <div class="header">
-  <div class="logo">
-    <span class="l1">S</span><span class="l2">A</span><span class="l3">S</span><span class="l4">M</span><span class="l5">O</span>
-  </div>
+  <div class="logo brand"></div>
   <div class="sub" id="sub">Grade 3 &bull; подготовка за месяц</div>
-  <h2>План на 28 дней</h2>
+  <h2 data-i18n="План на 28 дней">План на 28 дней</h2>
   <div class="grades" id="grades">
-    <a href="index.html?g=2" data-g="2">2 класс</a>
-    <a href="index.html?g=3" data-g="3">3 класс</a>
+    <a href="index.html?g=2" data-g="2" data-i18n="2 класс">2 класс</a>
+    <a href="index.html?g=3" data-g="3" data-i18n="3 класс">3 класс</a>
   </div>
   <div class="pbar"><div class="pfill" id="pf"></div></div>
   <div class="scores">
@@ -27,14 +25,14 @@
 
 <div class="container">
 
-  <div class="motto">
+  <div class="motto" data-i18n="motto">
     <em>«Упорный труд побеждает талант, когда талант не трудится усердно»</em>
     <strong>25 задач · 90 минут · без калькулятора</strong>
   </div>
 
   <div class="hubstats" id="stats"></div>
 
-  <div class="note warm">
+  <div class="note warm" data-i18n="tactics">
     <h3>Две тактики, которые дают больше баллов, чем лишняя выученная тема</h3>
     <ul>
       <li><b>Секция A (задачи 1–15).</b> За неверный ответ снимают 1 балл, за пропуск — ноль.
@@ -49,20 +47,20 @@
   </div>
 
   <div class="tools">
-    <a class="btn sec" id="errLink" href="errors.html">📓 Работа над ошибками</a>
-    <a class="btn sec" href="mathxcel_dima.html">🏅 MathXCEL 2024 — Дима</a>
-    <a class="btn sec" href="mathxcel_bogdan.html">🏅 MathXCEL 2024 — Богдан</a>
-    <a class="btn sec" href="copernicus.html">🧮 Тест Коперника (архив)</a>
-    <button class="mini ghost" id="resetBtn"
+    <a class="btn sec" id="errLink" href="errors.html" data-i18n="📓 Работа над ошибками">📓 Работа над ошибками</a>
+    <a class="btn" id="multLink" href="mult.html" style="display:none" data-i18n="⚡ Таблица умножения на скорость">⚡ Таблица умножения на скорость</a>
+    <button class="mini ghost" id="resetBtn" data-i18n="Сбросить весь прогресс"
             data-armed-text="Точно сбросить? Нажми ещё раз">Сбросить весь прогресс</button>
   </div>
 
+  <div id="papers"></div>
+
   <div id="cal"></div>
 
-  <p class="hint-line">Сбросить один день можно прямо на его карточке —
+  <p class="hint-line" data-i18n="hintline">Сбросить один день можно прямо на его карточке —
     кружок со стрелкой в углу. Он стирает и результат дня, и его задачи из журнала ошибок.</p>
 
-  <div class="note">
+  <div class="note" data-i18n="lesson">
     <h3>Как проходит одно занятие (около 50 минут)</h3>
     <ul>
       <li><b>5 мин — разминка.</b> 20 примеров устного счёта на время.</li>
@@ -76,11 +74,16 @@
 
 </div>
 
+<script src="assets/i18n.js"></script>
 <script src="assets/plan.js"></script>
 <script src="assets/plan2.js"></script>
 <script src="assets/quiz.js"></script>
+<script src="assets/paper.js"></script>
+<script src="assets/demo.js"></script>
 <script>
 (function () {
+  var t = I18N.t;
+
   // Класс выбирается ссылкой ?g=2; выбор запоминается, чтобы у каждого
   // ребёнка страница открывалась своей.
   var asked = new URLSearchParams(location.search).get('g');
@@ -92,11 +95,14 @@
   var PLAN = window.PLANS[grade];
   SASMO.usePlan(PLAN);
 
-  document.getElementById('sub').innerHTML = PLAN.sub;
-  document.title = 'SASMO ' + PLAN.label + ' — подготовка за месяц';
+  // ?demo=1 — засеять образец прогресса под демо-ключами (см. assets/demo.js)
+  if (I18N.demoRequested && window.DEMO) DEMO.seed(PLAN);
+
+  document.getElementById('sub').innerHTML = I18N.pick(PLAN, 'sub');
+  document.title = t('{brand} {label} — подготовка за месяц', { brand: BRAND.name, label: PLAN.label });
   var tabs = document.getElementById('grades').children;
-  for (var t = 0; t < tabs.length; t++) {
-    tabs[t].classList.toggle('on', tabs[t].getAttribute('data-g') === String(grade));
+  for (var i = 0; i < tabs.length; i++) {
+    tabs[i].classList.toggle('on', tabs[i].getAttribute('data-g') === String(grade));
   }
 
   var progress = SASMO.getProgress();
@@ -104,10 +110,8 @@
 
   if (!SASMO.storageWorks()) {
     document.getElementById('stats').insertAdjacentHTML('beforebegin',
-      '<div class="note warm"><h3>Прогресс не будет сохраняться</h3>' +
-      '<p>Браузер не разрешает этой странице хранить данные — так бывает в режиме ' +
-      'инкогнито или при запрете данных сайтов. Задачи решать можно, но галочки ' +
-      'и журнал ошибок пропадут после закрытия вкладки.</p></div>');
+      '<div class="note warm"><h3>' + t('Прогресс не будет сохраняться') + '</h3>' +
+      '<p>' + t('Браузер не разрешает этой странице хранить данные — так бывает в режиме инкогнито или при запрете данных сайтов. Задачи решать можно, но галочки и журнал ошибок пропадут после закрытия вкладки.') + '</p></div>');
   }
 
   var doneCount = 0;
@@ -124,27 +128,79 @@
   /* ---- шапка ---- */
   var total = PLAN.days.length;
   document.getElementById('pf').style.width = (doneCount / total * 100) + '%';
-  document.getElementById('cO').textContent = doneCount + ' дней пройдено';
-  document.getElementById('cP').textContent = 'осталось ' + (total - doneCount);
+  document.getElementById('cO').textContent = t('{n} дней пройдено', { n: doneCount });
+  document.getElementById('cP').textContent = t('осталось {n}', { n: total - doneCount });
 
   /* ---- плитки статистики ---- */
   var best = examScores.length ? Math.max.apply(null, examScores) : null;
   document.getElementById('stats').innerHTML =
     '<div class="stat"><div class="v">' + doneCount + '/' + total + '</div>' +
-      '<div class="k">дней пройдено</div></div>' +
+      '<div class="k">' + t('дней пройдено') + '</div></div>' +
     '<div class="stat"><div class="v">' + (best === null ? '—' : best + '/85') + '</div>' +
-      '<div class="k">лучший экзамен</div></div>' +
+      '<div class="k">' + t('лучший экзамен') + '</div></div>' +
     '<div class="stat"><div class="v">' + errors.length + '</div>' +
-      '<div class="k">задач в журнале ошибок</div></div>';
+      '<div class="k">' + t('задач в журнале ошибок') + '</div></div>';
 
   if (grade !== 3) {
     document.getElementById('errLink').href = 'errors.html?g=' + grade;
+  }
+  // Тренажёр таблицы умножения сделан для второго класса
+  if (grade === 2) {
+    document.getElementById('multLink').style.display = '';
+  }
+
+  /* ---- олимпиады прошлых лет ----
+
+     Это не дни программы: целая прошлая работа, которую решают за один раз.
+     Раздел зовётся по названию олимпиады, карточки берутся из каталога
+     window.PAPERS (assets/paper.js) — добавить работу можно, не трогая хаб.
+     Прогресс у отдельных работ свой у каждого решающего, поэтому читаем его
+     прямо из хранилища, а не через SASMO.getProgress(): активный план тут
+     другой — программы класса.                                              */
+  function paperResult(paper) {
+    var out = [];
+    Object.keys(window.SOLVERS).forEach(function (k) {
+      var rec = null;
+      try {
+        var raw = localStorage.getItem(SASMO_PAPER.keys(k).progress);
+        rec = raw ? (JSON.parse(raw) || {})[paper.set] : null;
+      } catch (e) { /* инкогнито — просто не покажем результат */ }
+      if (rec && rec.done && typeof rec.score === 'number') {
+        out.push(window.SOLVERS[k].name + ' — ' + rec.score + '/' + paper.max);
+      } else if (rec && SASMO.startedCount(rec) > 0) {
+        out.push(window.SOLVERS[k].name + ' — ' + t('начато'));
+      }
+    });
+    return out.length ? '<div class="dres">' + out.join(' · ') + '</div>' : '';
+  }
+
+  var papers = (window.PAPERS || []).filter(function (p) { return p.grade === grade; });
+  if (papers.length) {
+    document.getElementById('papers').innerHTML =
+      '<div class="week"><h3>' + t('Олимпиады прошлых лет') +
+      '<small>' + t('целая работа за один раз, а не день программы') + '</small></h3>' +
+      '<div class="grid">' +
+      papers.map(function (p) {
+        return '<a class="dcard exam" href="paper.html?p=' + p.id + '">' +
+                 '<div class="dnum">' + p.olympiad + '</div>' +
+                 '<div class="dttl">' + p.olympiad + ' ' + p.year + '</div>' +
+                 '<div class="dsk">' + p.note + '</div>' +
+                 paperResult(p) +
+               '</a>';
+      }).join('') +
+      '<a class="dcard" href="copernicus.html">' +
+        '<div class="dnum">' + t('Тест Коперника') + '</div>' +
+        '<div class="dttl">' + t('Коперник (архив)') + '</div>' +
+        '<div class="dsk">' + t('старая отдельная страница, счёт не ведётся') + '</div>' +
+      '</a>' +
+      '</div></div>';
   }
 
   /* ---- календарь ---- */
   var html = '';
   PLAN.weeks.forEach(function (w) {
-    html += '<div class="week"><h3>' + w.title + '<small>' + w.sub + '</small></h3><div class="grid">';
+    html += '<div class="week"><h3>' + I18N.pick(w, 'title') +
+            '<small>' + I18N.pick(w, 'sub') + '</small></h3><div class="grid">';
 
     for (var d = w.from; d <= w.to; d++) {
       var day = PLAN.day(d);
@@ -155,9 +211,9 @@
 
       var cls = 'dcard' + (day.kind === 'exam' ? ' exam' : '') +
                 (isDone ? ' done' : '') + (part > 0 ? ' part' : '');
-      var label = day.kind === 'exam' ? 'Экзамен · день ' + d
-                : day.kind === 'review' ? 'Разбор · день ' + d
-                : 'День ' + d;
+      var label = day.kind === 'exam' ? t('Экзамен · день {d}', { d: d })
+                : day.kind === 'review' ? t('Разбор · день {d}', { d: d })
+                : t('День {d}', { d: d });
 
       var result = '';
       if (isDone) {
@@ -166,27 +222,29 @@
           : '<div class="dres">✓ ' + rec.ok + ' / ' + rec.total + ' · ' + rec.date + '</div>';
       } else if (part > 0) {
         // день начат, но не закончен — решённые задачи уже сохранены
-        result = '<div class="dres part">начато: ' + part + ' из ' + (day.n || rec.total || '?') +
+        result = '<div class="dres part">' +
+                 t('начато: {a} из {n}', { a: part, n: day.n || rec.total || '?' }) +
                  (rec.date ? ' · ' + rec.date : '') + '</div>';
       }
 
       var wipe = (isDone || part > 0)
         ? '<button class="dreset" data-reset="' + day.id + '" data-armed-text="стереть?" ' +
-            'title="Сбросить этот день" aria-label="Сбросить прогресс дня ' + d + '">↺</button>'
+            'title="' + t('Сбросить этот день') + '" aria-label="' +
+            t('Сбросить прогресс дня {d}', { d: d }) + '">↺</button>'
         : '';
 
       var inner =
         wipe +
         '<div class="dnum">' + label + '</div>' +
-        '<div class="dttl">' + day.title + '</div>' +
-        '<div class="dsk">' + day.skill + '</div>' +
+        '<div class="dttl">' + I18N.pick(day, 'title') + '</div>' +
+        '<div class="dsk">' + I18N.pick(day, 'skill') + '</div>' +
         result +
         (isDone ? '<span class="tick">✅</span>' : '');
 
       html += ready
         ? '<a class="' + cls + '" href="' + PLAN.href(day) + '">' + inner + '</a>'
         : '<div class="' + cls + '" style="opacity:.45;cursor:default">' + inner +
-          '<div class="dsk" style="margin-top:.3rem;font-style:italic">задачи готовятся</div></div>';
+          '<div class="dsk" style="margin-top:.3rem;font-style:italic">' + t('задачи готовятся') + '</div></div>';
     }
 
     html += '</div></div>';

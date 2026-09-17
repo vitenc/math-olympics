@@ -48,8 +48,15 @@ const PAGE = `<!doctype html><html><head><meta charset="utf-8"></head><body>
    и с живым интервалом node не завершится сам. */
 const windows = [];
 
-function boot(width) {
-  const dom = new JSDOM(PAGE, { url: 'http://localhost/day.html', pretendToBeVisual: true });
+function boot(width, lang) {
+  /* runScripts: 'outside-only' — страницу саму мы не запускаем, но окну нужен
+     собственный контекст JS: без него window.eval выполняется снаружи и не
+     видит ни location, ни localStorage, а i18n.js читает location.search
+     первой же строкой. */
+  const dom = new JSDOM(PAGE, {
+    url: 'http://localhost/day.html' + (lang ? '?lang=' + lang : ''),
+    runScripts: 'outside-only', pretendToBeVisual: true
+  });
   const { window } = dom;
   windows.push(window);
 
@@ -64,15 +71,15 @@ function boot(width) {
   global.document = window.document;
   global.localStorage = window.localStorage;
 
-  for (const f of ['assets/fig.js', 'assets/plan.js', 'assets/plan2.js', 'assets/quiz.js']) {
+  for (const f of ['assets/i18n.js', 'assets/fig.js', 'assets/plan.js', 'assets/plan2.js', 'assets/quiz.js']) {
     window.eval(fs.readFileSync(path.join(ROOT, f), 'utf8'));
   }
   return window;
 }
 
 /* Один прогон набора: отвечаем на всё верно и смотрим, что получилось. */
-function run({ width, view, setId, file, varName, mode, minutes }) {
-  const window = boot(width);
+function run({ width, view, setId, file, varName, mode, minutes, lang }) {
+  const window = boot(width, lang);
   const doc = window.document;
 
   if (view) window.localStorage.setItem('sasmo.view', view);
@@ -393,6 +400,203 @@ function examScore(width, view) {
   ok(/params\.get\('who'\)/.test(errPage), 'errors.html должен читать ?who=');
   ok(/SASMO_PAPER\.keys\(who\)/.test(errPage), 'errors.html должен брать ключи решающего');
   ok(/assets\/paper\.js/.test(errPage), 'errors.html должен подключать paper.js');
+}
+
+/* ----------------------------- 8. английский интерфейс и контент --- */
+
+/* Язык выбирается ?lang=en и запоминается. Строки движка идут по словарю,
+   задача берёт поле `en`, а в журнал ошибок попадает и русский текст, и перевод. */
+{
+  const { window, doc, quiz } = run({
+    width: 1400, view: 'list', setId: 'day08', file: 'data/day08.js',
+    varName: 'DAY08', mode: 'practice', lang: 'en'
+  });
+
+  ok(window.I18N && window.I18N.lang === 'en', 'по ?lang=en язык должен стать английским');
+  ok(window.localStorage.getItem('sasmo.lang') === 'en', 'выбор языка должен запомниться');
+  ok(window.document.documentElement.lang === 'en', 'у документа должен стоять lang="en"');
+
+  const hintBtn = doc.querySelector('[data-act="hint"]');
+  ok(hintBtn && hintBtn.textContent.indexOf('Hint') >= 0,
+     'кнопка подсказки по-английски должна называться Hint, а не «' + (hintBtn && hintBtn.textContent) + '»');
+  ok(doc.querySelector('#c0 .qt').textContent.indexOf('Continue the sequence') === 0,
+     'первая задача дня 8 должна показываться по-английски');
+  ok(doc.querySelector('[data-view="step"]').textContent === 'One at a time',
+     'переключатель вида должен быть переведён');
+
+  // отвечаем неверно — в журнал должен лечь оригинал вместе с переводом
+  doc.getElementById('o0_' + ((quiz.Q[0].ans + 1) % 4)).click();
+  const errs = JSON.parse(window.localStorage.getItem('sasmo.errors') || '[]');
+  ok(errs.length === 1 && /Продолжи ряд/.test(errs[0].q), 'в журнал должен попасть русский текст задачи');
+  ok(errs[0].en && /Continue the sequence/.test(errs[0].en.q), 'в журнал должен попасть и перевод');
+  ok(doc.getElementById('cO').textContent === '0 correct', 'счётчик должен быть по-английски');
+
+  // без ?lang= и без сохранённого выбора — по-русски, как раньше
+  const ru = run({
+    width: 1400, view: 'list', setId: 'day08ru', file: 'data/day08.js',
+    varName: 'DAY08', mode: 'practice'
+  });
+  ok(ru.doc.querySelector('#c0 .qt').textContent.indexOf('Продолжи ряд') === 0,
+     'без выбора языка задача должна быть по-русски');
+  ok(ru.doc.querySelector('[data-act="hint"]').textContent.indexOf('Подсказка') >= 0,
+     'без выбора языка подсказка должна быть по-русски');
+}
+
+/* ----------------------------- 9. демо-режим не трогает прогресс --- */
+
+{
+  const w = boot(1400);
+  w.localStorage.setItem('sasmo.progress', JSON.stringify({ day01: { done: true, ok: 20, total: 25 } }));
+  w.localStorage.setItem('sasmo.demo', '1');
+  // usePlan читает флаг демо при каждом вызове
+  w.SASMO.usePlan(w.PLANS[3]);
+  w.eval(fs.readFileSync(path.join(ROOT, 'assets/demo.js'), 'utf8'));
+  w.DEMO.seed(w.PLANS[3]);
+
+  const real = JSON.parse(w.localStorage.getItem('sasmo.progress'));
+  const demo = JSON.parse(w.localStorage.getItem('demo.sasmo.progress') || '{}');
+  ok(real.day01 && real.day01.ok === 20 && Object.keys(real).length === 1,
+     'демо не должно менять настоящий прогресс');
+  ok(demo.exam1 && demo.exam1.score === 63, 'демо-прогресс должен лечь под ключ с приставкой demo.');
+  ok(w.SASMO.getProgress().exam1, 'в демо-режиме движок должен читать демо-ключи');
+
+  w.localStorage.removeItem('sasmo.demo');
+  w.SASMO.usePlan(w.PLANS[3]);
+  ok(!w.SASMO.getProgress().exam1 && w.SASMO.getProgress().day01,
+     'после выхода из демо движок должен вернуться к настоящему прогрессу');
+}
+
+/* --------------- 10. олимпиады из каталога: пять вариантов и счёт --- */
+
+/* Работы SASMO живут в каталоге window.PAPERS и открываются одной страницей
+   paper.html?p=…&who=…. Сломаться тут молча могут две вещи: пятый вариант
+   ответа (движок подписывает варианты буквами, и раньше их было четыре) и
+   счёт — у SASMO он берётся не из набора, а из правил движка по умолчанию. */
+{
+  const w = boot(1400);
+  w.eval(fs.readFileSync(path.join(ROOT, 'assets/paper.js'), 'utf8'));
+  w.eval(fs.readFileSync(path.join(ROOT, 'data/sasmo25.js'), 'utf8'));
+
+  const paper = w.SASMO_PAPER.byId('sasmo25');
+  ok(!!paper, 'SASMO 2025 должна быть в каталоге работ');
+  ok(paper.grade === 3 && paper.max === 85, 'у SASMO 2025 третий класс и максимум 85');
+  ok(!w.SASMO25.rules,
+     'у работы SASMO своих правил счёта быть не должно — иначе они разойдутся с экзаменами программы');
+
+  const data = w.SASMO25;
+  ok(data.questions.length === 25, `в работе должно быть 25 задач, а их ${data.questions.length}`);
+  ok(data.questions.slice(0, 15).every(q => q.type === 'mcq' && q.opts.length === 5),
+     'в секции A должно быть 15 задач с выбором из пяти вариантов');
+  ok(data.questions.slice(15).every(q => q.type === 'open'),
+     'в секции B ответ должен быть числом');
+
+  w.SASMO.usePlan({ keys: w.SASMO_PAPER.keys('dima'), hubHref: 'index.html',
+                    errorsHref: 'errors.html?who=dima' });
+  const quiz = w.SASMO.run({
+    mount: w.document.getElementById('box'),
+    questions: data.questions, mode: 'exam', setId: 'sasmo25', minutes: 90
+  });
+
+  // пятый вариант должен рисоваться и подписываться буквой E
+  const fifth = w.document.getElementById('o0_4');
+  ok(!!fifth, 'пятый вариант ответа не нарисовался');
+  ok(fifth.querySelector('.lt').textContent === 'E)',
+     'пятый вариант должен быть подписан буквой E, а подписан «' +
+     (fifth && fifth.querySelector('.lt').textContent) + '»');
+
+  // секции и максимум — как на пробных экзаменах программы
+  ok(quiz.rules.split === 15 && quiz.rules.max === 85,
+     `у работы SASMO должно быть 15 задач в секции A и максимум 85, а вышло ` +
+     `${quiz.rules.split} и ${quiz.rules.max}`);
+
+  answerAll(w, w.document, quiz);
+  w.document.getElementById('finishBtn').click();
+  ok(w.document.getElementById('fs').textContent === '85 / 85',
+     `за все верные ответы должно быть 85 / 85, а вышло ${w.document.getElementById('fs').textContent}`);
+
+  // картинки задач должны лежать на месте: без них задачи 3, 6, 12… не читаются
+  const missing = data.questions.filter(q => q.img && !fs.existsSync(path.join(ROOT, q.img)))
+                                .map(q => q.img);
+  ok(missing.length === 0, 'нет файлов картинок: ' + missing.join(', '));
+  ok(data.questions.filter(q => q.img).length === 8,
+     'картинок в работе должно быть 8 — по числу задач с рисунком в буклете');
+
+  // страница работы одна на все олимпиады и берёт их из каталога
+  const paperPage = fs.readFileSync(path.join(ROOT, 'paper.html'), 'utf8');
+  ok(/SASMO_PAPER\.openById/.test(paperPage), 'paper.html должен открывать работу из каталога');
+  ok(/params\.get\('who'\)/.test(paperPage), 'paper.html должен читать ?who=');
+
+  // хаб строит раздел олимпиад из того же каталога
+  const hub = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  ok(/id="papers"/.test(hub), 'на хабе должен быть раздел олимпиад');
+  ok(/assets\/paper\.js/.test(hub), 'хаб должен подключать paper.js — каталог работ лежит там');
+}
+
+/* ------------- 11. задача без восстановленного ответа (skip) --------- */
+
+/* У прошлых олимпиад буклет идёт без ключа, и к отдельным задачам ответ
+   восстановить не удаётся. Такая задача помечена `skip`: условие и рисунок
+   видны, ответа нет, и — самое важное — она не должна попасть ни в счёт,
+   ни в максимум, ни в «сколько осталось без ответа». */
+{
+  const w = boot(1400);
+  w.eval(fs.readFileSync(path.join(ROOT, 'assets/paper.js'), 'utf8'));
+
+  for (const [set, v, live, max] of [['sasmo24', 'SASMO24', 23, 79],
+                                     ['sasmo23', 'SASMO23', 24, 83]]) {
+    w.eval(fs.readFileSync(path.join(ROOT, 'data/' + set + '.js'), 'utf8'));
+    const data = w[v];
+    ok(data.questions.length === 25, `${set}: в работе должно быть 25 задач`);
+
+    const skipped = data.questions.filter(q => q.skip);
+    ok(skipped.length === 25 - live, `${set}: задач без ответа должно быть ${25 - live}`);
+    ok(skipped.every(q => q.ans === undefined && q.img),
+       `${set}: у задачи без ответа не должно быть ans, но должен быть рисунок`);
+
+    // каталог работ должен обещать хабу тот же максимум, что посчитает движок
+    ok(w.SASMO_PAPER.byId(set).max === max, `${set}: в каталоге максимум должен быть ${max}`);
+
+    w.document.getElementById('box').innerHTML = '';
+    w.SASMO.usePlan({ keys: w.SASMO_PAPER.keys('dima'), hubHref: 'index.html',
+                      errorsHref: 'errors.html?who=dima' });
+    const quiz = w.SASMO.run({
+      mount: w.document.getElementById('box'),
+      questions: data.questions, mode: 'exam', setId: set, minutes: 90
+    });
+
+    ok(quiz.live === live, `${set}: считаться должны ${live} задачи, а не ${quiz.live}`);
+    ok(quiz.rules.max === max,
+       `${set}: максимум должен быть ${max} (без задач со skip), а вышло ${quiz.rules.max}`);
+
+    // карточка такой задачи: условие с рисунком, но ни вариантов, ни поля ответа
+    const i = data.questions.findIndex(q => q.skip);
+    const card = w.document.getElementById('c' + i);
+    ok(card && card.classList.contains('skip'), `${set}: карточке нужен класс skip`);
+    ok(!card.querySelector('.opts') && !card.querySelector('.open-in'),
+       `${set}: у задачи без ответа не должно быть ни вариантов, ни поля ввода`);
+    ok(!!card.querySelector('.q-right img'), `${set}: рисунок задачи должен остаться`);
+    ok(quiz.stepState(i) === 'skip', `${set}: в карте задач она должна быть помечена skip`);
+
+    // отвечаем на всё, что можно, — и получаем полный балл, а не «79 из 85»
+    data.questions.forEach((q, k) => {
+      if (q.skip) return;
+      if (q.type === 'mcq') w.document.getElementById('o' + k + '_' + q.ans).click();
+      else {
+        const inp = w.document.getElementById('in' + k);
+        inp.value = String(q.ans);
+        inp.dispatchEvent(new w.Event('input', { bubbles: true }));
+      }
+    });
+    w.document.getElementById('finishBtn').click();
+    ok(w.document.getElementById('fs').textContent === max + ' / ' + max,
+       `${set}: за все решаемые задачи должно быть ${max} / ${max}, а вышло ` +
+       w.document.getElementById('fs').textContent);
+
+    // картинки на месте: без них половина задач не читается
+    const missing = data.questions.filter(q => q.img && !fs.existsSync(path.join(ROOT, q.img)))
+                                  .map(q => q.img);
+    ok(missing.length === 0, `${set}: нет файлов картинок: ` + missing.join(', '));
+  }
 }
 
 /* --------------------------------------------------------------- итог --- */
