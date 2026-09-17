@@ -574,7 +574,9 @@ function examScore(width, view) {
     ok(card && card.classList.contains('skip'), `${set}: карточке нужен класс skip`);
     ok(!card.querySelector('.opts') && !card.querySelector('.open-in'),
        `${set}: у задачи без ответа не должно быть ни вариантов, ни поля ввода`);
-    ok(!!card.querySelector('.q-right img'), `${set}: рисунок задачи должен остаться`);
+    ok(card.querySelectorAll('img').length === 1,
+       `${set}: у задачи без ответа должен остаться ровно один рисунок, ` +
+       `а их ${card.querySelectorAll('img').length}`);
     ok(quiz.stepState(i) === 'skip', `${set}: в карте задач она должна быть помечена skip`);
 
     // отвечаем на всё, что можно, — и получаем полный балл, а не «79 из 85»
@@ -596,6 +598,17 @@ function examScore(width, view) {
     const missing = data.questions.filter(q => q.img && !fs.existsSync(path.join(ROOT, q.img)))
                                   .map(q => q.img);
     ok(missing.length === 0, `${set}: нет файлов картинок: ` + missing.join(', '));
+
+    /* Рисунок должен рисоваться один раз. Когда-то его выводили сразу в двух
+       местах — из fig.js и отдельной боковой колонкой, — и каждая задача
+       с картинкой показывала её дважды. */
+    data.questions.forEach((q, k) => {
+      if (!q.img) return;
+      const c = w.document.getElementById('c' + k);
+      const imgs = c.querySelectorAll('img');
+      ok(imgs.length === 1,
+         `${set} #${k + 1}: рисунок должен быть один, а их ${imgs.length}`);
+    });
   }
 }
 
@@ -704,6 +717,12 @@ function examScore(width, view) {
     const missing = data.questions.filter(q => q.img && !fs.existsSync(path.join(ROOT, q.img)))
                                   .map(q => q.img);
     ok(missing.length === 0, `${set}: нет файлов картинок: ` + missing.join(', '));
+
+    data.questions.forEach((q, k) => {
+      if (!q.img) return;
+      const imgs = w.document.getElementById('c' + k).querySelectorAll('img');
+      ok(imgs.length === 1, `${set} #${k + 1}: рисунок должен быть один, а их ${imgs.length}`);
+    });
   }
 }
 

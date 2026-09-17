@@ -271,7 +271,6 @@ window.SASMO = (function () {
                    'в буклете олимпиады ключа нет. Реши её на бумаге и сверься с учителем — ' +
                    'в счёт работы она не идёт.') + '</div>' +
                '</div>' +
-               (q.img ? '<div class="q-right"><img src="' + q.img + '" alt="' + t('Задача {n}', { n: n }) + '" loading="lazy"></div>' : '') +
              '</div>';
     }
 
@@ -309,7 +308,6 @@ window.SASMO = (function () {
                (q.hint ? '<div class="hint" id="h' + i + '">💡 ' + q.hint + '</div>' : '') +
                '<div class="expl" id="e' + i + '">' + (q.ex || '') + FIG.forExplain(q) + '</div>' +
              '</div>' +
-             (q.img ? '<div class="q-right"><img src="' + q.img + '" alt="' + t('Задача {n}', { n: n }) + '" loading="lazy"></div>' : '') +
            '</div>';
   }
 

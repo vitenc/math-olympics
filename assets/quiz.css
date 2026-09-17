@@ -119,17 +119,10 @@ body {
 .qcard.skip .qn, .qcard.skip .qt { color: #6b7680; }
 .skipnote { margin-top: .6rem; font-size: .92rem; }
 
+/* Рисунок задачи рисует assets/fig.js — одной картинкой под условием, во всю
+   ширину карточки. Так он читается и на широких рядах вариантов A–E, и на
+   телефоне; отдельной боковой колонки для картинки больше нет. */
 .q-left { flex: 1; min-width: 0; }
-.q-right {
-  flex: 0 0 320px; max-width: 320px; border-radius: 8px; overflow: hidden;
-  border: 1px solid #ccc; background: #fff; box-shadow: 0 1px 6px rgba(0,0,0,.08);
-}
-.q-right img { display: block; width: 100%; height: auto; }
-
-@media (max-width: 860px) {
-  .qcard { flex-direction: column; }
-  .q-right { flex: none; max-width: 100%; align-self: center; }
-}
 
 .qn { color: var(--red); font-weight: 900; font-size: 1.1rem; margin-right: .4rem; }
 .qh { display: flex; align-items: flex-start; margin-bottom: .6rem; }
