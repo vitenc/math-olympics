@@ -1,14 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Список приложений для «всегда можно» в настройках родителя -->
-    <queries>
-        <intent>
-            <action android:name="android.intent.action.MAIN" />
-            <category android:name="android.intent.category.LAUNCHER" />
-        </intent>
-    </queries>
-
+    <!-- Версия 2: только обучение — тот же сайт внутри приложения, офлайн.
+         Замок и родительский контроль из версии 1 вернутся позже. -->
     <application
         android:allowBackup="false"
         android:icon="@drawable/ic_launcher"
@@ -16,44 +10,15 @@
         android:supportsRtl="true"
         android:theme="@android:style/Theme.DeviceDefault.Light.NoActionBar">
 
-        <!-- Настройки родителя: открываются с иконки, только по мастер-паролю -->
         <activity
-            android:name=".ParentActivity"
+            android:name=".MainActivity"
             android:exported="true"
-            android:launchMode="singleTask"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|uiMode"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <!-- Сам замок: поверх всех окон, пока не решены задачи -->
-        <service
-            android:name=".GateService"
-            android:exported="false"
-            android:label="@string/a11y_label"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
-            <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService" />
-            </intent-filter>
-            <meta-data
-                android:name="android.accessibilityservice"
-                android:resource="@xml/gate_service" />
-        </service>
-
-        <!-- Администратор устройства — только чтобы приложение нельзя было удалить -->
-        <receiver
-            android:name=".AdminReceiver"
-            android:exported="true"
-            android:label="@string/app_name"
-            android:permission="android.permission.BIND_DEVICE_ADMIN">
-            <meta-data
-                android:name="android.app.device_admin"
-                android:resource="@xml/device_admin" />
-            <intent-filter>
-                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
-            </intent-filter>
-        </receiver>
     </application>
 </manifest>

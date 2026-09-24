@@ -3,7 +3,12 @@
     android:width="108dp" android:height="108dp"
     android:viewportWidth="108" android:viewportHeight="108">
     <path android:fillColor="#C0392B" android:pathData="M18,10h72a8,8 0,0 1,8 8v72a8,8 0,0 1,-8 8h-72a8,8 0,0 1,-8 -8v-72a8,8 0,0 1,8 -8z" />
-    <path android:fillColor="#FFFFFF" android:pathData="M34,50v-8a20,20 0,0 1,40 0v8h-8v-8a12,12 0,0 0,-24 0v8z" />
-    <path android:fillColor="#FFFFFF" android:pathData="M30,50h48a4,4 0,0 1,4 4v26a4,4 0,0 1,-4 4h-48a4,4 0,0 1,-4 -4v-26a4,4 0,0 1,4 -4z" />
-    <path android:fillColor="#C0392B" android:pathData="M42,60h24v4h-24zM52,56h4v24h-4zM42,74h24v4h-24z" />
+    <!-- плюс -->
+    <path android:fillColor="#FFFFFF" android:pathData="M24,36h24v6h-24zM33,27h6v24h-6z" />
+    <!-- минус -->
+    <path android:fillColor="#FFFFFF" android:pathData="M60,36h24v6h-24z" />
+    <!-- умножить -->
+    <path android:fillColor="#FFFFFF" android:pathData="M27.8,62l4.2,-4.2l17,17l-4.2,4.2zM27.8,75l17,-17l4.2,4.2l-17,17z" />
+    <!-- равно -->
+    <path android:fillColor="#FFFFFF" android:pathData="M60,62h24v6h-24zM60,72h24v6h-24z" />
 </vector>

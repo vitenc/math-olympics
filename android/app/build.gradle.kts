@@ -3,16 +3,18 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
-/* Задачи, движок рисунков и картинки берутся из корня репозитория —
-   те же файлы, что у веб-версии. Копия кладётся в build/generated/web
-   перед каждой сборкой, в android/ ничего не дублируется. */
+/* Весь сайт — страницы, задачи, движок, рисунки и картинки — берётся из
+   корня репозитория: те же файлы, что у веб-версии. Копия кладётся
+   в build/generated/web перед каждой сборкой, в android/ ничего не
+   дублируется. Одностраничные сборки sasmo-month*.html не нужны:
+   многостраничная версия внутри приложения делает то же самое. */
 val webOut = layout.buildDirectory.dir("generated/web")
 val syncWeb by tasks.registering(Sync::class) {
     from(rootDir.parentFile) {
-        include("assets/**", "data/**", "img/**")
+        include("*.html", "assets/**", "data/**", "img/**")
+        exclude("sasmo-month*.html")
         into("web")
     }
-    from(rootDir.resolve("web")) { into("web") }
     into(webOut)
 }
 
@@ -24,8 +26,8 @@ android {
         applicationId = "com.mathgate"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1"
+        versionCode = 2
+        versionName = "2.0"
     }
 
     buildTypes {
