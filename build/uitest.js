@@ -726,6 +726,62 @@ function examScore(width, view) {
   }
 }
 
+/* --------------- 13a. FMO 2022: четыре части и штраф в последней ------ */
+
+/* У FMO задачи дорожают по частям (3, 4, 8, 10), а штраф −10 есть только
+   в последней задаче. Она же — единственная в тренажёре с семью вариантами
+   (дни недели), поэтому проверяем и буквы до G. */
+{
+  const w = boot(1400);
+  w.eval(fs.readFileSync(path.join(ROOT, 'assets/paper.js'), 'utf8'));
+  w.eval(fs.readFileSync(path.join(ROOT, 'data/fmo22.js'), 'utf8'));
+  const data = w.FMO22;
+  ok(data.questions.length === 21, 'fmo22: в работе должна быть 21 задача');
+  ok(w.SASMO_PAPER.byId('fmo22').max === 100, 'fmo22: в каталоге максимум должен быть 100');
+
+  const start = (answer) => {
+    w.document.getElementById('box').innerHTML = '';
+    w.localStorage.clear();
+    w.SASMO.usePlan({ keys: w.SASMO_PAPER.keys('dima'), hubHref: 'index.html',
+                      errorsHref: 'errors.html?who=dima' });
+    const quiz = w.SASMO.run({
+      mount: w.document.getElementById('box'), questions: data.questions,
+      mode: 'exam', setId: 'fmo22', rules: data.rules, minutes: 60
+    });
+    answer(quiz);
+    w.document.getElementById('finishBtn').click();
+    return { quiz, fs: w.document.getElementById('fs').textContent };
+  };
+
+  let r = start(quiz => answerAll(w, w.document, quiz));
+  ok(r.quiz.rules.max === 100, `fmo22: движок должен насчитать максимум 100, а вышло ${r.quiz.rules.max}`);
+  ok(r.quiz.rules.sections.length === 4, 'fmo22: частей должно быть четыре');
+  ok(r.quiz.sectionOf(9) === 0 && r.quiz.sectionOf(10) === 1 &&
+     r.quiz.sectionOf(15) === 2 && r.quiz.sectionOf(20) === 3,
+     'fmo22: задачи разошлись по частям неверно');
+  ok(r.fs === '100 / 100', 'fmo22: за всё верное должно быть 100 / 100, а вышло ' + r.fs);
+  ok(w.document.querySelectorAll('.sect').length === 4, 'fmo22: заголовков частей должно быть четыре');
+  ok(w.document.querySelector('#o20_6 .lt').textContent === 'G)',
+     'fmo22 #21: седьмой вариант должен быть под буквой G');
+
+  // всё верно, кроме №21: 90 − 10 = 80
+  r = start(quiz => {
+    answerAll(w, w.document, quiz);
+    w.document.getElementById('o20_0').click();
+  });
+  ok(r.fs === '80 / 100', 'fmo22: неверный ответ в №21 должен снять 10 баллов, а вышло ' + r.fs);
+
+  // №21 пропущен — просто 0 за неё
+  r = start(quiz => quiz.Q.forEach((q, i) => {
+    if (i < 20) w.document.getElementById('o' + i + '_' + q.ans).click();
+  }));
+  ok(r.fs === '90 / 100', 'fmo22: пропуск №21 не штрафуется, а вышло ' + r.fs);
+
+  const missing = data.questions.filter(q => q.img && !fs.existsSync(path.join(ROOT, q.img)))
+                                .map(q => q.img);
+  ok(missing.length === 0, 'fmo22: нет файлов картинок: ' + missing.join(', '));
+}
+
 /* ------------- 14. «Мне непонятно — объясни»: теория к задаче -------- */
 
 {

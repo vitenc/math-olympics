@@ -82,9 +82,10 @@ function checkSet(where, data, seen) {
 
       if (q.type === 'mcq') {
         // Четыре варианта в программе и у MathXCEL, пять — у SASMO (там пятый
-        // «ничего из перечисленного»), больше пяти движок не подпишет буквами
-        if (!Array.isArray(q.opts) || (q.opts.length !== 4 && q.opts.length !== 5)) {
-          errors.push(`${at}: у варианта ответа должно быть 4 или 5 опций, а их ${q.opts ? q.opts.length : 0}`);
+        // «ничего из перечисленного»), семь — дни недели в FMO 2022 №21.
+        // Больше восьми движок не подпишет буквами
+        if (!Array.isArray(q.opts) || q.opts.length < 4 || q.opts.length > 8) {
+          errors.push(`${at}: у варианта ответа должно быть от 4 до 8 опций, а их ${q.opts ? q.opts.length : 0}`);
         } else if (!Number.isInteger(q.ans) || q.ans < 0 || q.ans >= q.opts.length) {
           errors.push(`${at}: ans=${q.ans} вне списка вариантов`);
         } else {
@@ -165,6 +166,7 @@ const PAPERS = [
   { id: 'sasmo23',    v: 'SASMO23',    n: 25, label: 'SASMO 2023 / 3 класс', sasmo: true },
   { id: 'amo24',      v: 'AMO24',      n: 25, label: 'AMO 2024 / 3 класс' },
   { id: 'amo23',      v: 'AMO23',      n: 25, label: 'AMO 2023 / 3 класс' },
+  { id: 'fmo22',      v: 'FMO22',      n: 21, label: 'FMO 2022 / 3 класс' },
   { id: 'mathxcel24', v: 'MATHXCEL24', n: 25, label: 'MathXCEL 2024 / 3 класс' }
 ];
 

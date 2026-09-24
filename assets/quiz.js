@@ -290,8 +290,9 @@ window.SASMO = (function () {
     } else {
       body = '<div class="opts">' + q.opts.map(function (o, j) {
         return '<div class="opt" data-act="pick" data-i="' + i + '" data-j="' + j + '" id="o' + i + '_' + j + '">' +
-                 // У SASMO пять вариантов (A–E), у MathXCEL четыре: букв берём с запасом
-                 '<span class="lt">' + 'ABCDE'[j] + ')</span><span>' + o + '</span>' +
+                 // У SASMO пять вариантов (A–E), у MathXCEL четыре, в FMO 2022 №21 —
+                 // семь дней недели: букв берём с запасом
+                 '<span class="lt">' + 'ABCDEFGH'[j] + ')</span><span>' + o + '</span>' +
                '</div>';
       }).join('') + '</div>';
     }

@@ -55,6 +55,9 @@
     { id: 'amo23',      olympiad: 'AMO', year: 2023, grade: 3,
       set: 'amo23',      varName: 'AMO23',      minutes: 90, max: 100,
       note: '25 задач · 90 минут · три секции по 3, 5 и 6 баллов, штрафов нет' },
+    { id: 'fmo22',      olympiad: 'FMO', year: 2022, grade: 3,
+      set: 'fmo22',      varName: 'FMO22',      minutes: 60, max: 100,
+      note: '21 задача · 60 минут · четыре части по 3, 4, 8 и 10 баллов, штраф только в последней' },
     { id: 'mathxcel24', olympiad: 'MathXCEL', year: 2024, grade: 3,
       set: 'mathxcel24', varName: 'MATHXCEL24', minutes: 80, max: 55,
       note: '25 задач · 80 минут · максимум 55 баллов, штрафов нет' }
