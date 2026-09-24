@@ -191,6 +191,8 @@ body {
 .mini.ghost { border-style: dashed; color: var(--muted); }
 
 .qactions { margin-top: .55rem; display: flex; gap: .5rem; flex-wrap: wrap; }
+/* На экзамене кнопка теории появляется только после сдачи работы */
+.qcard:not(.done) .th-after { display: none; }
 
 /* ===== ПОДСКАЗКА И РАЗБОР ===== */
 .hint {

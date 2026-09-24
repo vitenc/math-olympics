@@ -9,7 +9,8 @@
      • у open ответ — число;
      • ответ из разбора совпадает с полем ans (ловит описки в арифметике);
      • спецификации рисунков рисуются;
-     • одинаковые формулировки внутри класса.                                */
+     • одинаковые формулировки внутри класса;
+     • у каждой задачи находится теория («Мне непонятно — объясни»).        */
 
 const fs = require('fs');
 const path = require('path');
@@ -18,9 +19,11 @@ const ROOT = path.resolve(__dirname, '..');
 
 global.window = {};
 require(path.join(ROOT, 'assets', 'fig.js'));
+require(path.join(ROOT, 'assets', 'theory.js'));
 require(path.join(ROOT, 'assets', 'plan.js'));
 require(path.join(ROOT, 'assets', 'plan2.js'));
 const FIG = global.window.SASMO_FIG;
+const THEORY = global.window.SASMO_THEORY;
 
 const errors = [];
 const warns = [];
@@ -55,6 +58,13 @@ function checkSet(where, data, seen) {
     const at = `${where} #${i + 1}`;
 
       if (!q.q || typeof q.q !== 'string') errors.push(`${at}: пустое условие`);
+
+      // Кнопка «Мне непонятно — объясни» ищет приём по теме (или по полю theory)
+      if (q.theory && !THEORY.keys().includes(q.theory)) {
+        errors.push(`${at}: нет приёма theory: '${q.theory}' в assets/theory.js`);
+      } else if (!THEORY.keyFor(q)) {
+        errors.push(`${at}: к теме «${q.topic || '(нет темы)'}» нет теории — добавь её в assets/theory.js`);
+      }
 
       /* Задача с `skip` — та, к которой ответ не восстановлен (буклет без
          ключа). У неё нет ни ответа, ни разбора, и это нормально: проверять

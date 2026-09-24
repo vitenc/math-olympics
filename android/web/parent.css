@@ -1,0 +1,51 @@
+/* Настройки родителя. Основа — assets/quiz.css сайта. */
+
+.gate-top {
+  background: rgba(255,255,255,.92); border-bottom: 3px solid #ccc;
+  padding: .8rem 1rem; text-align: center;
+}
+.gate-title { font-weight: 900; font-size: 1.15rem; }
+
+.container { padding-top: .8rem; padding-bottom: 2rem; }
+
+.pc {
+  background: var(--card); border-radius: 14px; padding: .9rem 1rem;
+  margin-bottom: .8rem; box-shadow: 0 2px 10px rgba(0,0,0,.05);
+}
+.pc h3 { font-size: 1rem; margin-bottom: .5rem; }
+.pc p, .pc li { font-size: .88rem; color: var(--muted); }
+.pc p + p { margin-top: .4rem; }
+.pc ol, .pc ul { padding-left: 1.2rem; }
+
+.row { display: flex; align-items: center; justify-content: space-between; gap: .6rem; padding: .45rem 0; }
+.row + .row { border-top: 1px solid rgba(0,0,0,.07); }
+.row .lbl { font-weight: 700; font-size: .92rem; }
+.row .lbl small { display: block; font-weight: 600; color: var(--muted); font-size: .78rem; }
+
+.seg { display: flex; flex-wrap: wrap; gap: .3rem; justify-content: flex-end; }
+.seg button {
+  font: 800 .85rem 'Nunito', sans-serif; padding: .35rem .7rem; border-radius: 8px;
+  border: 2px solid #d0d0d0; background: #fff; color: var(--text);
+}
+.seg button.on { border-color: var(--blue); background: var(--blue); color: #fff; }
+
+.ok-mark { color: var(--green); font-weight: 900; }
+.no-mark { color: var(--wrong-red); font-weight: 900; }
+
+input.pw {
+  width: 100%; font: 800 1.2rem 'Nunito', sans-serif; letter-spacing: .15em;
+  padding: .5rem .7rem; border: 2px solid #cfcfcf; border-radius: 10px; margin: .3rem 0;
+  -webkit-text-security: disc;   /* поле tel — чтобы открылась цифровая клавиатура, а цифры скрыты */
+}
+input.pw::placeholder { letter-spacing: normal; font-weight: 600; }
+.msg { color: var(--wrong-red); font-weight: 700; font-size: .85rem; min-height: 1.2em; }
+.btn { width: 100%; margin-top: .4rem; }
+.btn.ghost { background: #fff; color: var(--text); border: 2px solid #ccc; }
+
+.apps label { display: flex; align-items: center; gap: .6rem; padding: .35rem 0; font-weight: 700; font-size: .9rem; }
+.apps input { width: 20px; height: 20px; }
+
+.log { font-size: .82rem; }
+.log div { display: flex; gap: .5rem; padding: .2rem 0; border-top: 1px solid rgba(0,0,0,.06); }
+.log .t { color: var(--muted); min-width: 5.5rem; }
+.pstat { font-size: 1.1rem; font-weight: 900; }

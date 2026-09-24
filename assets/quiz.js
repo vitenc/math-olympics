@@ -217,7 +217,7 @@ window.SASMO = (function () {
     errs.push({
       key: key, setId: setId, idx: idx, ts: Date.now(),
       type: q.type, q: q.q, opts: q.opts, ans: q.ans,
-      hint: q.hint, ex: q.ex, topic: q.topic,
+      hint: q.hint, ex: q.ex, topic: q.topic, theory: q.theory,
       fig: q.fig, exfig: q.exfig, img: q.img, en: q.en
     });
     saveErrors(errs);
@@ -250,6 +250,10 @@ window.SASMO = (function () {
   /* Рисунки к задачам живут в assets/fig.js; без него страница просто без картинок. */
   var FIG = window.SASMO_FIG || { forQuestion: function () { return ''; },
                                   forExplain: function () { return ''; } };
+
+  /* Теория к приёму задачи — assets/theory.js, кнопка «Мне непонятно — объясни».
+     На тренировке она есть сразу, на экзамене — только после сдачи работы. */
+  var THEORY = window.SASMO_THEORY || null;
 
   /* ---------- отрисовка ---------- */
 
@@ -292,11 +296,18 @@ window.SASMO = (function () {
       }).join('') + '</div>';
     }
 
+    var theory = THEORY ? THEORY.forQuestion(q, I.lang) : '';
+    var thBtn = theory
+      ? '<button class="mini ghost theory-btn" data-act="theory" data-i="' + i + '">' + THEORY.label(I.lang) + '</button>'
+      : '';
     var actions = '';
-    if (cfg.mode === 'practice' && q.hint) {
+    if (cfg.mode === 'practice' && (q.hint || thBtn)) {
       actions = '<div class="qactions">' +
-                  '<button class="mini ghost" data-act="hint" data-i="' + i + '">' + t('💡 Подсказка') + '</button>' +
+                  (q.hint ? '<button class="mini ghost" data-act="hint" data-i="' + i + '">' + t('💡 Подсказка') + '</button>' : '') +
+                  thBtn +
                 '</div>';
+    } else if (thBtn) {
+      actions = '<div class="qactions th-after">' + thBtn + '</div>';
     }
 
     return '<div class="qcard" id="c' + i + '" data-i="' + i + '">' +
@@ -307,6 +318,7 @@ window.SASMO = (function () {
                actions +
                (q.hint ? '<div class="hint" id="h' + i + '">💡 ' + q.hint + '</div>' : '') +
                '<div class="expl" id="e' + i + '">' + (q.ex || '') + FIG.forExplain(q) + '</div>' +
+               (theory ? '<div class="theory" id="t' + i + '">' + theory + '</div>' : '') +
              '</div>' +
            '</div>';
   }
@@ -840,6 +852,9 @@ window.SASMO = (function () {
         var h = document.getElementById('h' + i);
         if (h) h.classList.add('vis');
         el.remove();
+      } else if (act === 'theory') {
+        var th = document.getElementById('t' + i);
+        if (th) th.classList.toggle('vis');
       }
     });
 

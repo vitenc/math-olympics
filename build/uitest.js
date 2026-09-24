@@ -71,7 +71,7 @@ function boot(width, lang) {
   global.document = window.document;
   global.localStorage = window.localStorage;
 
-  for (const f of ['assets/i18n.js', 'assets/fig.js', 'assets/plan.js', 'assets/plan2.js', 'assets/quiz.js']) {
+  for (const f of ['assets/i18n.js', 'assets/fig.js', 'assets/theory.js', 'assets/plan.js', 'assets/plan2.js', 'assets/quiz.js']) {
     window.eval(fs.readFileSync(path.join(ROOT, f), 'utf8'));
   }
   return window;
@@ -723,6 +723,84 @@ function examScore(width, view) {
       const imgs = w.document.getElementById('c' + k).querySelectorAll('img');
       ok(imgs.length === 1, `${set} #${k + 1}: рисунок должен быть один, а их ${imgs.length}`);
     });
+  }
+}
+
+/* ------------- 14. «Мне непонятно — объясни»: теория к задаче -------- */
+
+{
+  // тренировка: кнопка у каждой задачи, по нажатию раскрывается теория с рисунком
+  const { doc, quiz } = run({
+    width: 1200, view: 'list', setId: 'day13', file: 'data/day13.js',
+    varName: 'DAY13', mode: 'practice'
+  });
+  quiz.Q.forEach((q, i) => {
+    ok(!!doc.querySelector(`#c${i} [data-act="theory"]`), `day13 #${i + 1}: нет кнопки «Мне непонятно»`);
+  });
+  const th = doc.getElementById('t0');
+  ok(th && !th.classList.contains('vis'), 'теория должна быть свёрнута, пока не попросили');
+  doc.querySelector('#c0 [data-act="theory"]').click();
+  ok(th.classList.contains('vis'), 'по кнопке теория должна раскрыться');
+  ok(th.querySelector('.th-title') && th.querySelector('.th-steps') && th.querySelector('.th-ex'),
+     'в теории должны быть заголовок, шаги и разобранный пример');
+  doc.querySelector('#c0 [data-act="theory"]').click();
+  ok(!th.classList.contains('vis'), 'повторное нажатие должно свернуть теорию');
+
+  // после ответа подсказка исчезает, а объяснение остаётся
+  answerAll(global.window, doc, quiz);
+  ok(!!doc.querySelector('#c0 [data-act="theory"]'), 'после ответа кнопка теории должна остаться');
+}
+
+{
+  // экзамен: кнопка спрятана до сдачи работы — на экзамене теорией не подсказывают
+  const { doc, quiz } = run({
+    width: 1200, view: 'list', setId: 'exam1', file: 'data/exam1.js',
+    varName: 'EXAM1', mode: 'exam', minutes: 90
+  });
+  const row = doc.querySelector('#c0 .th-after');
+  ok(!!row, 'на экзамене кнопка теории должна быть в скрытом ряду th-after');
+  ok(!doc.getElementById('c0').classList.contains('done'), 'до сдачи карточка не должна быть done');
+  quiz.finish(false);
+  ok(doc.getElementById('c0').classList.contains('done'), 'после сдачи карточка done — и кнопка теории видна');
+}
+
+{
+  // английский интерфейс: и кнопка, и теория по-английски
+  const { doc } = run({
+    width: 1200, view: 'list', setId: 'day08', file: 'data/day08.js',
+    varName: 'DAY08', mode: 'practice', lang: 'en'
+  });
+  const btn = doc.querySelector('#c0 [data-act="theory"]');
+  ok(btn && /explain/.test(btn.textContent), 'в английском интерфейсе кнопка должна быть по-английски');
+  ok(/[a-z]/i.test(doc.querySelector('#t0 .th-title').textContent) &&
+     !/[а-я]/i.test(doc.querySelector('#t0 .th-title').textContent), 'теория в английском интерфейсе — по-английски');
+}
+
+{
+  // одностраничная сборка: движок свой, кнопка тоже должна быть
+  const file = path.join(ROOT, 'sasmo-month.html');
+  if (fs.existsSync(file)) {
+    const quiet = new VirtualConsole();
+    quiet.on('jsdomError', () => {});
+    const dom = new JSDOM(fs.readFileSync(file, 'utf8'), {
+      url: 'http://localhost/sasmo-month.html#/day/4',
+      runScripts: 'dangerously', pretendToBeVisual: true, virtualConsole: quiet
+    });
+    const w = dom.window;
+    windows.push(w);
+    w.matchMedia = () => ({ matches: false, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} });
+    w.scrollTo = () => {};
+    w.localStorage.setItem('sasmo.view', 'list');
+    w.location.hash = '#/day/4';
+    w.dispatchEvent(new w.Event('hashchange'));
+    const d = w.document;
+    const b = d.querySelector('#q0 [data-act="theory"]');
+    ok(!!b, 'в одностраничной сборке нет кнопки «Мне непонятно»');
+    if (b) {
+      b.click();
+      ok(d.getElementById('t0').classList.contains('vis'), 'в сборке теория не раскрывается');
+      ok(!!d.querySelector('#t0 svg'), 'в сборке у теории модельного метода должен быть рисунок');
+    }
   }
 }
 

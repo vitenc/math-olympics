@@ -459,6 +459,9 @@ a { color: var(--accent); }
 .btn.small { font-size: var(--step--1); padding: .42rem .85rem; }
 
 .q-actions { margin-top: .6rem; display: flex; gap: .5rem; flex-wrap: wrap; }
+.q:not(.done) .th-after { display: none; }
+.theory { --theory-bg: var(--card-sunk); --theory-line: var(--line); --theory-ink: var(--accent, #2f5fa8);
+  font-family: var(--read); }
 .actions { display: flex; gap: .6rem; flex-wrap: wrap; justify-content: center; margin-top: 1.4rem; }
 
 /* подсказка и разбор */
@@ -654,6 +657,8 @@ body.has-stepnav { padding-bottom: 5rem; }
   'use strict';
 
   var D = window.SASMO_DATA;
+  // Теория к приёму задачи (assets/theory.js вклеивается при сборке)
+  var THEORY = window.SASMO_THEORY || null;
   var FIG = window.SASMO_FIG || { forQuestion: function () { return ''; },
                                   forExplain: function () { return ''; } };
   var app = document.getElementById('app');
@@ -754,7 +759,7 @@ body.has-stepnav { padding-bottom: 5rem; }
     state.errors.push({
       key: key, setId: setId, idx: idx, ts: Date.now(),
       type: q.type, q: q.q, opts: q.opts, ans: q.ans,
-      hint: q.hint, ex: q.ex, topic: q.topic,
+      hint: q.hint, ex: q.ex, topic: q.topic, theory: q.theory,
       fig: q.fig, exfig: q.exfig, img: q.img
     });
   }
@@ -1079,12 +1084,21 @@ body.has-stepnav { padding-bottom: 5rem; }
         + 'data-act="hint" data-i="' + i + '">Подсказка</button></div>'
       : '';
 
+    // «Мне непонятно — объясни»: на тренировке сразу, на экзамене — после сдачи
+    var theory = THEORY ? THEORY.forQuestion(q, 'ru') : '';
+    var thRow = theory
+      ? '<div class="q-actions' + (mode === 'exam' ? ' th-after' : '') + '">'
+        + '<button class="btn small quiet theory-btn" type="button" data-act="theory" data-i="' + i + '">'
+        + THEORY.label('ru') + '</button></div>'
+      : '';
+
     return '<article class="q" id="q' + i + '">'
          +   '<div class="q-head"><span class="q-num">' + (i + 1) + '</span>'
          +     '<div class="q-text">' + q.q + FIG.forQuestion(q) + '</div></div>'
-         +   body + actions
+         +   body + actions + thRow
          +   '<div class="hint" id="h' + i + '" hidden>' + (q.hint || '') + '</div>'
          +   '<div class="expl" id="e' + i + '" hidden>' + (q.ex || '') + FIG.forExplain(q) + '</div>'
+         +   (theory ? '<div class="theory" id="t' + i + '">' + theory + '</div>' : '')
          + '</article>';
   }
 
@@ -1183,6 +1197,10 @@ body.has-stepnav { padding-bottom: 5rem; }
     else if (act === 'hint') {
       document.getElementById('h' + i).hidden = false;
       el.parentNode.remove();
+    }
+    else if (act === 'theory') {
+      var th = document.getElementById('t' + i);
+      if (th) th.classList.toggle('vis');
     }
   }
 

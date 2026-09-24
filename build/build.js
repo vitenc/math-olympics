@@ -22,7 +22,8 @@ const MIME = {
   '.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml'
 };
 
-const template = fs.readFileSync(path.join(__dirname, 'template.html'), 'utf8');
+// Git на Windows может отдать шаблон с CRLF, а метка вставки ищется с LF
+const template = fs.readFileSync(path.join(__dirname, 'template.html'), 'utf8').replace(/\r\n/g, '\n');
 const marker = '<script>\n/* eslint-disable */';
 if (!template.includes(marker)) {
   throw new Error('В шаблоне не найдено место для вставки данных');
@@ -30,6 +31,9 @@ if (!template.includes(marker)) {
 
 // Движок рисунков общий с многостраничной версией — вклеиваем его целиком.
 const fig = fs.readFileSync(path.join(ROOT, 'assets', 'fig.js'), 'utf8');
+
+// Теория к задачам («Мне непонятно — объясни») — тоже общая.
+const theory = fs.readFileSync(path.join(ROOT, 'assets', 'theory.js'), 'utf8');
 
 /* В одной странице нет errors.html: правим ссылки на внутренний маршрут. */
 function relink(html) {
@@ -100,6 +104,7 @@ function build(grade) {
     marker,
     '<script>window.SASMO_DATA = ' + json + ';</script>\n\n'
     + '<script>\n/* eslint-disable */\n' + fig + '</script>\n\n'
+    + '<script>\n/* eslint-disable */\n' + theory + '</script>\n\n'
     + marker
   );
 

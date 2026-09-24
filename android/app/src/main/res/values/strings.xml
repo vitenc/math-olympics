@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Math Gate</string>
+    <string name="a11y_label">Math Gate — lock until tasks are solved</string>
+    <string name="a11y_desc">Watches which app is open and covers the screen with math tasks until the child solves the number set by the parent. Nothing is read or sent anywhere.</string>
+    <string name="admin_disable_warning">Math Gate protection will be turned off. A parent password was required to get here.</string>
+</resources>
