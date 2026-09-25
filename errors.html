@@ -36,7 +36,7 @@
 <script>
 (function () {
   var t = I18N.t;
-  var params = new URLSearchParams(location.search);
+  var params = SASMO.params();
 
   /* У отдельных работ журнал свой у каждого решающего: за ними сидят разные
      дети, и ошибки одного не должны попадаться другому. ?who=… и выбирает,

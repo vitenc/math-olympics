@@ -278,53 +278,130 @@ function examScore(width, view) {
      'на пройденном дне отступ под панель не нужен');
 }
 
-/* ------------------ 6. одностраничная сборка: движок там отдельный --- */
+/* ------------------ 6. одностраничная сборка: тот же движок --- */
 
-/* sasmo-month.html несёт собственную копию движка — значит, режим в ней
-   может разойтись с многостраничной версией молча. Проверяем и её. */
-{
+/* sasmo-month.html своего движка больше не несёт: в ней лежат настоящие
+   страницы и assets/quiz.js, а переключает их build/router.js. Проверяем,
+   что маршруты, режим «по одной», ссылки, экзамен и перенос старого
+   прогресса работают и там. */
+function bundle(hash, setup) {
   const file = path.join(ROOT, 'sasmo-month.html');
-  if (!fs.existsSync(file)) {
-    failures.push('нет sasmo-month.html — сначала node build/build.js');
-  } else {
-    // jsdom ругается на scrollTo, которого у него нет; в отчёте это лишний шум
+  // jsdom ругается на scrollTo, которого у него нет; в отчёте это лишний шум
+  const quiet = new VirtualConsole();
+  quiet.on('jsdomError', (e) => { if (!/scrollTo|Not implemented/.test(e.message)) failures.push('сборка: ' + e.message); });
+  const dom = new JSDOM(fs.readFileSync(file, 'utf8'), {
+    url: 'http://localhost/sasmo-month.html' + (hash || ''),
+    runScripts: 'dangerously', pretendToBeVisual: true, virtualConsole: quiet,
+    beforeParse(w) {
+      w.matchMedia = (q) => ({
+        matches: /max-width:\s*760px/.test(q), media: q,
+        addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {}
+      });
+      w.scrollTo = () => {};
+      if (setup) setup(w);
+    }
+  });
+  windows.push(dom.window);
+  return dom.window;
+}
+
+function go(w, hash) {
+  w.location.hash = hash;
+  w.dispatchEvent(new w.Event('hashchange'));
+}
+
+if (!fs.existsSync(path.join(ROOT, 'sasmo-month.html'))) {
+  failures.push('нет sasmo-month.html — сначала node build/build.js');
+} else {
+  const tpl = path.join(ROOT, 'build', 'template.html');
+  ok(!fs.existsSync(tpl), 'build/template.html со своей копией движка больше не нужен');
+  const html = fs.readFileSync(path.join(ROOT, 'sasmo-month.html'), 'utf8');
+  ok(html.indexOf(fs.readFileSync(path.join(ROOT, 'assets/quiz.js'), 'utf8').slice(0, 400)) >= 0,
+     'в сборке должен лежать assets/quiz.js как есть');
+
+  const w = bundle('#/day/2', (w) => w.localStorage.setItem('sasmo.view', 'step'));
+  const d = w.document;
+
+  const cards = [...d.querySelectorAll('.qcard')];
+  const cur = [...d.querySelectorAll('.qcard.cur')];
+  ok(cards.length === 10, `в сборке должно быть 10 задач дня, а их ${cards.length}`);
+  ok(cur.length === 1, `в сборке видна должна быть одна задача, а их ${cur.length}`);
+  ok(!!d.getElementById('stepnav'), 'в сборке нет панели навигации');
+  ok(d.getElementById('stepnav') && d.getElementById('stepnav').classList.contains('vis'), 'панель в сборке должна быть видна');
+  ok(d.getElementById('stepNum') && d.getElementById('stepNum').textContent.indexOf('1 / 10') >= 0,
+     'счётчик в сборке должен показывать «1 / 10»');
+
+  d.getElementById('stepNext').click();
+  ok(d.querySelector('.qcard.cur') && d.querySelector('.qcard.cur').id === 'c1', 'в сборке не листается вперёд');
+
+  // ответ сохраняется под тем же ключом, что и на сайте
+  const q0 = w.DAY02.questions[0];
+  if (q0.type === 'mcq') d.getElementById('o0_' + q0.ans).click();
+  const prog = JSON.parse(w.localStorage.getItem('sasmo.progress') || '{}');
+  ok(prog.day02 && prog.day02.answers[0] && prog.day02.answers[0].ok === true,
+     'сборка должна писать прогресс туда же, куда и сайт (sasmo.progress)');
+
+  // уходим на другую страницу — панель не должна остаться висеть
+  go(w, '#/');
+  ok(!d.getElementById('stepnav'), 'при уходе с набора панель должна убираться');
+  ok(!d.body.classList.contains('has-stepnav'), 'класс has-stepnav должен сниматься с body');
+  ok(!!d.getElementById('cal') && d.querySelectorAll('#cal .dcard').length === 28,
+     'хаб сборки должен показать 28 карточек дней');
+  ok(d.querySelector('#cal .dcard.part') !== null, 'начатый день должен быть отмечен на хабе сборки');
+  ok(d.getElementById('papers').innerHTML === '', 'в сборке нет страниц прошлых олимпиад — и раздела на хабе');
+
+  // ссылка на день перехватывается и становится маршрутом
+  const link = d.querySelector('#cal a.dcard[href^="day.html"]');
+  link.click();
+  ok(/^#\/day\.html\?d=/.test(w.location.hash), 'клик по дню в сборке должен менять хеш, а не страницу');
+  w.dispatchEvent(new w.Event('hashchange'));     // в jsdom событие приходит позже
+  ok(d.querySelectorAll('.qcard').length > 0, 'после клика по дню должны появиться задачи');
+
+  // экзамен: таймер стартует, а при уходе останавливается и попытка сохраняется
+  go(w, '#/exam/1');
+  d.getElementById('startBtn').click();
+  ok(d.querySelectorAll('.qcard').length === 25, 'в экзамене сборки 25 задач');
+  const e0 = w.EXAM1.questions[0];
+  if (e0.type === 'mcq') d.getElementById('o0_' + e0.ans).click();
+  go(w, '#/');
+  const att = JSON.parse(w.localStorage.getItem('sasmo.progress')).exam1;
+  ok(att && att.exam && att.exam.given[0] === e0.ans, 'незаконченная попытка экзамена в сборке должна сохраниться');
+
+  // прогресс прежней сборки (один объект под keys.single) переносится
+  const old = { days: { day03: { done: true, ok: 7, no: 3, total: 10, answers: {}, date: '01.09' } },
+                errors: [{ key: 'day03#1', setId: 'day03', idx: 1, ts: 1, type: 'open', q: '?', ans: 1, topic: 'x' }],
+                updatedAt: 5 };
+  const w2 = bundle('', (w) => w.localStorage.setItem('sasmo.month.v1', JSON.stringify(old)));
+  const moved = JSON.parse(w2.localStorage.getItem('sasmo.progress') || '{}');
+  ok(moved.day03 && moved.day03.ok === 7, 'прогресс старой сборки должен переехать в sasmo.progress');
+  ok(JSON.parse(w2.localStorage.getItem('sasmo.errors') || '[]').length === 1,
+     'журнал старой сборки должен переехать в sasmo.errors');
+
+  // английский в сборке: заголовок дня не затирается переводом «Загружаем задачи…»
+  const w3 = bundle('#/day/8', (w) => w.localStorage.setItem('sasmo.lang', 'en'));
+  ok(w3.document.getElementById('ttl').textContent !== 'Loading problems…',
+     'в сборке по-английски заголовок дня не должен остаться «Loading problems…»');
+  ok(!!w3.document.querySelector('.langsw'), 'в сборке должен быть переключатель языка');
+
+  // второй класс: своя программа и свои ключи
+  const f2 = path.join(ROOT, 'sasmo-month-2.html');
+  if (fs.existsSync(f2)) {
     const quiet = new VirtualConsole();
     quiet.on('jsdomError', () => {});
-    const dom = new JSDOM(fs.readFileSync(file, 'utf8'), {
-      url: 'http://localhost/sasmo-month.html#/day/2',
-      runScripts: 'dangerously', pretendToBeVisual: true, virtualConsole: quiet
+    const dom2 = new JSDOM(fs.readFileSync(f2, 'utf8'), {
+      url: 'http://localhost/sasmo-month-2.html#/day/2',
+      runScripts: 'dangerously', pretendToBeVisual: true, virtualConsole: quiet,
+      beforeParse(w) {
+        w.matchMedia = () => ({ matches: false, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} });
+        w.scrollTo = () => {};
+      }
     });
-    const w = dom.window;
-    windows.push(w);
-    w.matchMedia = (q) => ({
-      matches: /max-width:\s*760px/.test(q), media: q,
-      addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {}
-    });
-    w.scrollTo = () => {};
-
-    const d = w.document;
-    w.localStorage.setItem('sasmo.view', 'step');
-    w.location.hash = '#/day/2';
-    w.dispatchEvent(new w.Event('hashchange'));
-
-    const cards = [...d.querySelectorAll('.q')];
-    const cur = [...d.querySelectorAll('.q.cur')];
-    ok(cards.length === 10, `в сборке должно быть 10 задач дня, а их ${cards.length}`);
-    ok(cur.length === 1, `в сборке видна должна быть одна задача, а их ${cur.length}`);
-    ok(!!d.getElementById('stepnav'), 'в сборке нет панели навигации');
-    ok(d.getElementById('stepnav').classList.contains('vis'), 'панель в сборке должна быть видна');
-    ok(d.getElementById('stepNum').textContent.indexOf('1 / 10') >= 0,
-       'счётчик в сборке должен показывать «1 / 10», а показывает «' +
-       d.getElementById('stepNum').textContent + '»');
-
-    d.getElementById('stepNext').click();
-    ok(d.querySelector('.q.cur').id === 'q1', 'в сборке не листается вперёд');
-
-    // уходим на другую страницу — панель не должна остаться висеть
-    w.location.hash = '#/';
-    w.dispatchEvent(new w.Event('hashchange'));
-    ok(!d.getElementById('stepnav'), 'при уходе с набора панель должна убираться');
-    ok(!d.body.classList.contains('has-stepnav'), 'класс has-stepnav должен сниматься с body');
+    windows.push(dom2.window);
+    const g = dom2.window;
+    const gq = g.G2DAY02.questions[0];
+    if (gq.type === 'mcq') g.document.getElementById('o0_' + gq.ans).click();
+    ok(!!g.localStorage.getItem('sasmo.g2.progress') && !g.localStorage.getItem('sasmo.progress'),
+       'сборка второго класса должна писать в sasmo.g2.progress');
   }
 }
 
@@ -833,24 +910,11 @@ function examScore(width, view) {
 }
 
 {
-  // одностраничная сборка: движок свой, кнопка тоже должна быть
-  const file = path.join(ROOT, 'sasmo-month.html');
-  if (fs.existsSync(file)) {
-    const quiet = new VirtualConsole();
-    quiet.on('jsdomError', () => {});
-    const dom = new JSDOM(fs.readFileSync(file, 'utf8'), {
-      url: 'http://localhost/sasmo-month.html#/day/4',
-      runScripts: 'dangerously', pretendToBeVisual: true, virtualConsole: quiet
-    });
-    const w = dom.window;
-    windows.push(w);
-    w.matchMedia = () => ({ matches: false, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} });
-    w.scrollTo = () => {};
-    w.localStorage.setItem('sasmo.view', 'list');
-    w.location.hash = '#/day/4';
-    w.dispatchEvent(new w.Event('hashchange'));
+  // одностраничная сборка: тот же движок — и кнопка та же
+  if (fs.existsSync(path.join(ROOT, 'sasmo-month.html'))) {
+    const w = bundle('#/day/4', (w) => w.localStorage.setItem('sasmo.view', 'list'));
     const d = w.document;
-    const b = d.querySelector('#q0 [data-act="theory"]');
+    const b = d.querySelector('#c0 [data-act="theory"]');
     ok(!!b, 'в одностраничной сборке нет кнопки «Мне непонятно»');
     if (b) {
       b.click();

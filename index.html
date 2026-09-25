@@ -86,7 +86,7 @@
 
   // Класс выбирается ссылкой ?g=2; выбор запоминается, чтобы у каждого
   // ребёнка страница открывалась своей.
-  var asked = new URLSearchParams(location.search).get('g');
+  var asked = SASMO.params().get('g');
   var remembered = null;
   try { remembered = localStorage.getItem('sasmo.grade'); } catch (e) {}
   var grade = (asked || remembered) === '2' ? 2 : 3;
@@ -94,6 +94,11 @@
 
   var PLAN = window.PLANS[grade];
   SASMO.usePlan(PLAN);
+
+  /* В одностраничной сборке (sasmo-month.html) один класс и нет отдельных
+     страниц работ и таблицы умножения — ссылки на них там вели бы в никуда. */
+  var BUNDLE = window.SASMO_BUNDLE || null;
+  if (BUNDLE) document.getElementById('grades').style.display = 'none';
 
   // ?demo=1 — засеять образец прогресса под демо-ключами (см. assets/demo.js)
   if (I18N.demoRequested && window.DEMO) DEMO.seed(PLAN);
@@ -145,7 +150,7 @@
     document.getElementById('errLink').href = 'errors.html?g=' + grade;
   }
   // Тренажёр таблицы умножения сделан для второго класса
-  if (grade === 2) {
+  if (grade === 2 && !BUNDLE) {
     document.getElementById('multLink').style.display = '';
   }
 
@@ -174,7 +179,7 @@
     return out.length ? '<div class="dres">' + out.join(' · ') + '</div>' : '';
   }
 
-  var papers = (window.PAPERS || []).filter(function (p) { return p.grade === grade; });
+  var papers = BUNDLE ? [] : (window.PAPERS || []).filter(function (p) { return p.grade === grade; });
   if (papers.length) {
     document.getElementById('papers').innerHTML =
       '<div class="week"><h3>' + t('Олимпиады прошлых лет') +
@@ -259,7 +264,7 @@
     ev.stopPropagation();
     SASMO.armReset(btn, function () {
       SASMO.resetDay(btn.getAttribute('data-reset'));
-      location.reload();
+      SASMO.reload();
     });
   });
 
@@ -269,7 +274,7 @@
     SASMO.armReset(btn, function () {
       SASMO.saveProgress({});
       SASMO.saveErrors([]);
-      location.reload();
+      SASMO.reload();
     });
   });
 })();

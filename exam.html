@@ -57,7 +57,7 @@
 <script>
 (function () {
   var t = I18N.t;
-  var params = new URLSearchParams(location.search);
+  var params = SASMO.params();
   var PLAN = window.PLANS[params.get('g') === '2' ? 2 : 3];
   SASMO.usePlan(PLAN);
 
@@ -81,20 +81,18 @@
   document.getElementById('ttl').textContent = title;
   document.title = t('{title} — {brand}', { title: title, brand: BRAND.name });
 
-  var s = document.createElement('script');
-  s.src = PLAN.dir + setId + '.js';
+  SASMO.loadSet(PLAN.dir + setId + '.js', varName, onload, fail);
 
-  s.onerror = function () {
+  function fail() {
     gate.innerHTML = '<div class="empty">' +
                      t('Не удалось загрузить <code>{file}</code>.<br>Похоже, этот экзамен ещё не готов.',
                        { file: PLAN.dir + setId + '.js' }) +
                      ' <a href="' + hub + '">' + t('К плану') + '</a>.</div>';
-  };
+  }
 
-  s.onload = function () {
-    var data = window[varName];
-    if (!data || !data.questions || data.questions.length !== 25) {
-      s.onerror();
+  function onload(data) {
+    if (!data.questions || data.questions.length !== 25) {
+      fail();
       return;
     }
 
@@ -128,7 +126,7 @@
       var btn = this;
       SASMO.armReset(btn, function () {
         SASMO.resetDay(setId);
-        location.reload();
+        SASMO.reload();
       });
     });
 
@@ -144,9 +142,7 @@
       });
       window.scrollTo({ top: 0 });
     });
-  };
-
-  document.head.appendChild(s);
+  }
 })();
 </script>
 </body>

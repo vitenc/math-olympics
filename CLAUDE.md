@@ -60,9 +60,11 @@ python tools/verify.py        # пересчитать ответы через s
 
 ## Подводные камни
 
-- **Движок в двух местах.** `sasmo-month.html` собирается из
-  `build/template.html` со своей копией движка, не из `assets/quiz.js`.
-  Правку поведения вносить в оба места; `build/uitest.js` проверяет обе.
+- **Сборка = те же страницы.** `sasmo-month*.html` собирается из
+  `index/day/exam/errors.html`, `assets/` и `data/`; страницы переключает
+  `build/router.js`. В коде страниц не трогать `location` напрямую —
+  `SASMO.params()`, `SASMO.reload()`, `SASMO.loadSet()`. У страницы ровно
+  один встроенный `<script>`. После правки — `node build/build.js`.
 - **Счёт секционный.** `rulesFor` в `assets/quiz.js` берёт
   `rules.sections` — список секций с ценой задачи (SASMO — две, AMO — три:
   1–15 по 3, 16–20 по 5, 21–25 по 6; FMO — четыре части, штраф −10 только в

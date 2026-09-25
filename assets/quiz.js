@@ -603,7 +603,7 @@ window.SASMO = (function () {
 
     /* Стрелки на клавиатуре — для планшета с клавиатурой. */
     document.addEventListener('keydown', function (ev) {
-      if (!self.stepOn || ev.altKey || ev.ctrlKey || ev.metaKey) return;
+      if (self.dead || !self.stepOn || ev.altKey || ev.ctrlKey || ev.metaKey) return;
       if (ev.target && ev.target.closest && ev.target.closest('input, textarea')) return;
       if (ev.key === 'ArrowLeft') self.goStep(self.stepAt - 1);
       else if (ev.key === 'ArrowRight') self.goStep(self.stepAt + 1);
@@ -615,7 +615,7 @@ window.SASMO = (function () {
     if (window.matchMedia) {
       var mq = window.matchMedia(PHONE);
       var onChange = function () {
-        if (savedView()) return;
+        if (self.dead || savedView()) return;
         self.setStepMode(mq.matches);
       };
       if (mq.addEventListener) mq.addEventListener('change', onChange);
@@ -1256,6 +1256,7 @@ window.SASMO = (function () {
     if (typeof quiz.left !== 'number' || quiz.left <= 0) quiz.left = minutes * 60;
 
     function tick() {
+      if (quiz.dead) { clearInterval(id); return; }
       var m = Math.floor(quiz.left / 60);
       var s = quiz.left % 60;
       el.textContent = '⏱ ' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
@@ -1278,16 +1279,44 @@ window.SASMO = (function () {
 
   /* ---------- публичный вход ---------- */
 
+  /* Набор, который сейчас на экране. На отдельной странице он один на всю
+     жизнь вкладки, а в одностраничной сборке страницы сменяют друг друга без
+     перезагрузки — и прежний набор надо честно погасить: остановить таймер,
+     убрать панель навигации и отцепить слушателей документа. */
+  var active = null;
+
+  function stop() {
+    if (!active) return;
+    var q = active;
+    active = null;
+    if (!q.finished) q.saveExam();
+    q.dead = true;
+    if (q.timerId) clearInterval(q.timerId);
+    if (q.onHide) {
+      window.removeEventListener('beforeunload', q.onUnload);
+      document.removeEventListener('visibilitychange', q.onHide);
+    }
+    ['stepnav', 'stepmap'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.remove();
+    });
+    document.body.classList.remove('has-stepnav');
+  }
+
   function run(cfg) {
+    stop();
     var quiz = new Quiz(cfg);
+    active = quiz;
     quiz.render();
 
     if (cfg.mode === 'exam') {
       // вкладку закрывают, а на планшете чаще сворачивают — и там и там сохраняем
-      window.addEventListener('beforeunload', function () { quiz.saveExam(); });
-      document.addEventListener('visibilitychange', function () {
+      quiz.onUnload = function () { quiz.saveExam(); };
+      quiz.onHide = function () {
         if (document.visibilityState === 'hidden') quiz.saveExam();
-      });
+      };
+      window.addEventListener('beforeunload', quiz.onUnload);
+      document.addEventListener('visibilitychange', quiz.onHide);
       if (cfg.minutes) {
         quiz.timerId = startTimer(quiz, cfg.minutes, 'timer', function () { quiz.finish(true); });
       }
@@ -1296,8 +1325,47 @@ window.SASMO = (function () {
     return quiz;
   }
 
+  /* ---------- страница: адрес, перезагрузка, наборы задач ----------
+
+     Страницы тренажёра живут в двух видах: отдельными файлами (day.html,
+     exam.html…) и внутри одностраничной сборки sasmo-month.html, где их
+     переключает маршрутизатор (build/router.js). Чтобы код страницы был один
+     на оба вида, адрес, перезагрузку и подгрузку набора страница берёт
+     отсюда, а не из location напрямую. В сборке маршрутизатор кладёт себя
+     в window.SASMO_ROUTE.                                                    */
+
+  function route() { return window.SASMO_ROUTE || null; }
+
+  function params() {
+    var r = route();
+    return new URLSearchParams(r ? r.search() : location.search);
+  }
+
+  function reload() {
+    var r = route();
+    if (r) r.reload(); else location.reload();
+  }
+
+  /* Набор задач лежит в .js, а не в .json: на file:// fetch заблокирован,
+     а <script> работает. В сборке наборы уже вклеены — тогда грузить нечего. */
+  function loadSet(src, varName, onload, onerror) {
+    if (window[varName]) { onload(window[varName]); return; }
+    if (route()) { onerror(); return; }
+    var s = document.createElement('script');
+    s.src = src;
+    s.onerror = function () { onerror(); };
+    s.onload = function () {
+      if (window[varName]) onload(window[varName]); else onerror();
+    };
+    document.head.appendChild(s);
+  }
+
   return {
     run: run,
+    stop: stop,
+    params: params,
+    reload: reload,
+    loadSet: loadSet,
     usePlan: usePlan,
     storageWorks: storageWorks,
     getProgress: getProgress,

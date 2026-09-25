@@ -36,7 +36,7 @@
 <script>
 (function () {
   var t = I18N.t;
-  var params = new URLSearchParams(location.search);
+  var params = SASMO.params();
   var PLAN = window.PLANS[params.get('g') === '2' ? 2 : 3];
   SASMO.usePlan(PLAN);
 
@@ -60,20 +60,18 @@
 
   // Данные лежат в .js, а не .json: на file:// fetch заблокирован,
   // а подключение <script> работает и без локального сервера.
-  var s = document.createElement('script');
-  s.src = PLAN.dir + day.id + '.js';
+  SASMO.loadSet(PLAN.dir + day.id + '.js', day.v, onload, fail);
 
-  s.onerror = function () {
+  function fail() {
     box.innerHTML = '<div class="empty">' +
                     t('Не удалось загрузить <code>{file}</code>.<br>Похоже, задачи для этого дня ещё не готовы.',
                       { file: PLAN.dir + day.id + '.js' }) +
                     ' <a href="' + hub + '">' + t('К плану') + '</a>.</div>';
-  };
+  }
 
-  s.onload = function () {
-    var data = window[day.v];
-    if (!data || !data.questions || !data.questions.length) {
-      s.onerror();
+  function onload(data) {
+    if (!data.questions || !data.questions.length) {
+      fail();
       return;
     }
 
@@ -106,7 +104,7 @@
       mode: 'practice',
       setId: day.id
     });
-  };
+  }
 
   function showResume(text, btnLabel) {
     var box = document.getElementById('resume');
@@ -120,12 +118,11 @@
       var btn = this;
       SASMO.armReset(btn, function () {
         SASMO.resetDay(day.id);     // заодно уходят и задачи этого дня из журнала ошибок
-        location.reload();
+        SASMO.reload();
       });
     });
   }
 
-  document.head.appendChild(s);
 })();
 </script>
 </body>

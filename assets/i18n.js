@@ -366,7 +366,8 @@ window.I18N = (function () {
     ['lang', 'demo'].forEach(function (k) { p.delete(k); });
     if (value !== null && value !== undefined) p.set(name, value);
     var qs = p.toString();
-    return location.pathname.split('/').pop() + (qs ? '?' + qs : '');
+    // хеш сохраняем: в одностраничной сборке по нему живёт маршрут
+    return location.pathname.split('/').pop() + (qs ? '?' + qs : '') + location.hash;
   }
 
   /* ---- шапка: бренд, переключатель языка, плашка демо ---- */
@@ -391,7 +392,7 @@ window.I18N = (function () {
   }
 
   function mountDemo() {
-    if (!isDemo()) return;
+    if (!isDemo() || document.querySelector('.demobar')) return;
     var bar = document.createElement('div');
     bar.className = 'demobar';
     bar.innerHTML = t('Демо-режим: показан образец прогресса, настоящие результаты не затронуты.') +
@@ -406,11 +407,20 @@ window.I18N = (function () {
     try { history.replaceState(null, '', link('', null)); } catch (e) { /* file:// может не дать */ }
   }
 
-  function boot() {
+  /* Шапку украшаем заново каждый раз, как страница её перерисовала:
+     в одностраничной сборке это происходит при каждом переходе. */
+  function decorate(root) {
     mountBrand();
     mountSwitch();
-    apply(document);
+    apply(root || document);
     mountDemo();
+  }
+
+  /* В одностраничной сборке шапку украшает маршрутизатор — при каждом
+     переходе, до скрипта страницы. Украсить ещё раз здесь значило бы
+     перевести заново то, что страница успела заполнить сама. */
+  function boot() {
+    if (!window.SASMO_BUNDLE) decorate(document);
     cleanUrl();
   }
 
@@ -423,6 +433,7 @@ window.I18N = (function () {
     pick: pick,
     localize: localize,
     apply: apply,
+    decorate: decorate,
     link: link,
     isDemo: isDemo,
     demoRequested: demoAsked === '1'
