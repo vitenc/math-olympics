@@ -924,6 +924,18 @@ if (!fs.existsSync(path.join(ROOT, 'sasmo-month.html'))) {
   }
 }
 
+/* ------ 15. теория по-английски у задачи с переведённой темой ------ */
+
+/* У переведённой задачи тема английская (Place value), а приёмы теории
+   привязаны к русским темам. Кнопка «объясни» не должна пропадать. */
+{
+  const { doc } = run({ width: 1400, view: 'list', setId: 'day01', file: 'data/day01.js',
+                        varName: 'DAY01', mode: 'practice', lang: 'en' });
+  ok(/Which digit/.test(doc.querySelector('#c0 .qt').textContent), 'день 1 должен быть по-английски');
+  ok(!!doc.querySelector('#c0 [data-act="theory"]'),
+     'у задачи с английской темой должна остаться кнопка теории');
+}
+
 /* --------------------------------------------------------------- итог --- */
 
 windows.forEach(w => w.close());

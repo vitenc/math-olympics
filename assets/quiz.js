@@ -260,6 +260,7 @@ window.SASMO = (function () {
   function questionHTML(q, i, cfg) {
     var n = i + 1;
     var body = '';
+    var orig = q;             // приём теории ищется по исходной (русской) теме
     q = I.localize(q);        // текст на выбранном языке; ответ и тип те же
 
     /* Задача с полем `skip` — та, для которой ответ не восстановлен.
@@ -297,7 +298,7 @@ window.SASMO = (function () {
       }).join('') + '</div>';
     }
 
-    var theory = THEORY ? THEORY.forQuestion(q, I.lang) : '';
+    var theory = THEORY ? THEORY.forQuestion(orig, I.lang) : '';
     var thBtn = theory
       ? '<button class="mini ghost theory-btn" data-act="theory" data-i="' + i + '">' + THEORY.label(I.lang) + '</button>'
       : '';
