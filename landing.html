@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Olympiad Sprint — 28 days to a maths olympiad</title>
+<meta name="description" content="A 28-day olympiad preparation programme for primary school children: a problem a day, a technique a day, an error journal and timed mock exams. Works offline.">
+<style>
+/* Лендинг для партнёров и жюри грантов. Только английский: русскоязычный
+   тренажёр открывается кнопкой «Try the demo». Бренд — из window.BRAND
+   (assets/i18n.js), чтобы название менялось в одном месте. */
+:root {
+  --ink: #14243f; --soft: #4d5d78; --muted: #7a889d;
+  --paper: #f6f8fb; --card: #fff; --line: #dce4ef;
+  --blue: #2980b9; --red: #c0392b; --green: #1c8552; --amber: #b9770e;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif; color: var(--ink);
+       background: var(--paper); line-height: 1.55; }
+a { color: var(--blue); }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
+header.top { background: var(--card); border-bottom: 1px solid var(--line); }
+header.top .wrap { display: flex; align-items: center; gap: 1rem; padding-top: .8rem; padding-bottom: .8rem; }
+.logo { font-weight: 900; font-size: 1.35rem; letter-spacing: -.01em; }
+.logo .b1 { color: var(--blue); }
+.logo .b2 { color: #fff; background: var(--red); border-radius: 6px; padding: 0 .35rem; margin-left: .25rem; }
+header.top nav { margin-left: auto; display: flex; gap: 1rem; font-size: .92rem; }
+header.top nav a { text-decoration: none; color: var(--soft); font-weight: 600; }
+
+.hero { padding: 3.2rem 0 2.4rem; }
+.hero h1 { font-size: clamp(1.9rem, 4.6vw, 3rem); line-height: 1.12; letter-spacing: -.02em; max-width: 16em; }
+.hero h1 em { font-style: normal; color: var(--red); }
+.hero p.lead { font-size: 1.15rem; color: var(--soft); max-width: 38em; margin-top: 1rem; }
+.cta { display: flex; flex-wrap: wrap; gap: .7rem; margin-top: 1.6rem; }
+.btn { display: inline-block; padding: .75rem 1.2rem; border-radius: 10px; font-weight: 700;
+       text-decoration: none; background: var(--blue); color: #fff; border: 2px solid var(--blue); }
+.btn.sec { background: transparent; color: var(--blue); }
+.btn.red { background: var(--red); border-color: var(--red); }
+
+section { padding: 2.2rem 0; }
+section h2 { font-size: 1.5rem; letter-spacing: -.01em; margin-bottom: .4rem; }
+section .sub { color: var(--soft); margin-bottom: 1.2rem; max-width: 42em; }
+
+.grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 1.1rem 1.2rem; }
+.card h3 { font-size: 1.02rem; margin-bottom: .35rem; }
+.card p { color: var(--soft); font-size: .95rem; }
+.card .n { font-size: .78rem; font-weight: 800; letter-spacing: .08em; color: var(--red); text-transform: uppercase; }
+
+.stats { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.stat { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 1rem; text-align: center; }
+.stat b { display: block; font-size: 1.9rem; color: var(--blue); line-height: 1.1; }
+.stat span { font-size: .85rem; color: var(--soft); }
+
+.proof { background: var(--card); border: 1px solid var(--line); border-left: 5px solid var(--green);
+         border-radius: 14px; padding: 1.2rem 1.3rem; }
+.proof p + p { margin-top: .6rem; }
+.honest { font-size: .9rem; color: var(--muted); }
+
+.status td, .status th { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--line); font-size: .93rem; vertical-align: top; }
+.status { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.status th { background: #eef3f9; font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; color: var(--soft); }
+.tag { display: inline-block; font-size: .75rem; font-weight: 800; border-radius: 6px; padding: .05rem .45rem; white-space: nowrap; }
+.tag.ok { background: #e7f4ed; color: var(--green); }
+.tag.wip { background: #fbf2df; color: var(--amber); }
+.tag.plan { background: #eef3f9; color: var(--soft); }
+
+footer { padding: 2rem 0 3rem; color: var(--muted); font-size: .85rem; border-top: 1px solid var(--line); margin-top: 1.5rem; }
+
+@media (max-width: 640px) {
+  header.top nav { display: none; }
+  .hero { padding-top: 2rem; }
+  .status td:nth-child(3), .status th:nth-child(3) { display: none; }
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="logo brand"><span class="b1">Olympiad</span><span class="b2">Sprint</span></div>
+    <nav>
+      <a href="#method">Method</a>
+      <a href="#evidence">Evidence</a>
+      <a href="#schools">For schools</a>
+      <a href="onepager.html">One-pager</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap hero">
+    <h1>Twenty-eight days that turn a strong pupil into an <em>olympiad</em> pupil.</h1>
+    <p class="lead">A structured sprint for Grades 2–3: one technique a day, problems in rising difficulty,
+      an error journal that brings mistakes back, and timed mock exams under real competition rules.
+      It runs in any browser and on Android, fully offline.</p>
+    <div class="cta">
+      <a class="btn red" href="index.html?demo=1&amp;lang=en">Try the demo</a>
+      <a class="btn" href="day.html?d=08&amp;lang=en">Solve a lesson</a>
+      <a class="btn sec" href="report.html?demo=1&amp;lang=en">See a progress report</a>
+    </div>
+  </div>
+
+  <section id="method">
+    <div class="wrap">
+      <h2>The method</h2>
+      <p class="sub">Olympiad problems are not harder school maths. They reward a small set of techniques
+        that school rarely teaches. The sprint teaches them one at a time and then mixes them.</p>
+      <div class="grid">
+        <div class="card"><div class="n">Day 1</div><h3>Diagnose</h3>
+          <p>A 25-problem mixed test maps what the child already knows. Mistakes become the schedule.</p></div>
+        <div class="card"><div class="n">Days 2–25</div><h3>A technique a day</h3>
+          <p>Bar models, working backwards, differences tables, worst case, counting figures… Ten problems each,
+            a hint only after an honest attempt, and a picture-based explanation for every technique.</p></div>
+        <div class="card"><div class="n">Every day</div><h3>Error journal</h3>
+          <p>Every wrong answer is saved with its explanation and comes back until it is solved.
+            The weakest topic is always on top.</p></div>
+        <div class="card"><div class="n">Days 20, 25, 27</div><h3>Mock exams</h3>
+          <p>25 problems, 90 minutes, real scoring and penalties. Children learn when to skip and
+            when never to leave a blank: tactics worth more points than an extra topic.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="stats">
+        <div class="stat"><b>660</b><span>problems for Grades 2 and 3, each with a hint and a worked solution</span></div>
+        <div class="stat"><b>49</b><span>techniques explained with diagrams</span></div>
+        <div class="stat"><b>7</b><span>full past olympiad papers with correct scoring</span></div>
+        <div class="stat"><b>30</b><span>olympiad topics, from place value to worst-case reasoning</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="evidence">
+    <div class="wrap">
+      <h2>Evidence so far</h2>
+      <div class="proof">
+        <p><b>Case study:</b> two Grade 2 pupils went through the sprint before an international
+          maths olympiad (SASMO). One won <b>gold</b>, the other <b>silver</b>.</p>
+        <p class="honest">Two children are a case, not a study. That is why the product now measures
+          itself: a diagnostic test before the sprint and a parallel test after it, per-topic growth,
+          time per problem, and a printable report for parents and teachers. The first school pilot
+          (60 children, with a control group) is designed to turn the case into data.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="schools">
+    <div class="wrap">
+      <h2>For schools and programmes</h2>
+      <p class="sub">What exists today, what is being built now, and what comes next.</p>
+      <table class="status">
+        <tr><th>Capability</th><th>Status</th><th>Notes</th></tr>
+        <tr><td>28-day programme, Grades 2 and 3</td><td><span class="tag ok">Live</span></td><td>Russian; English for the demo lessons</td></tr>
+        <tr><td>Mock exams and past papers with real scoring</td><td><span class="tag ok">Live</span></td><td>Two-, three- and four-section formats</td></tr>
+        <tr><td>Offline use: browser file, single-file build, Android app</td><td><span class="tag ok">Live</span></td><td>No internet needed in class</td></tr>
+        <tr><td>Before/after assessment with two parallel forms</td><td><span class="tag ok">Live</span></td><td>Counterbalanced A/B forms, per-topic results</td></tr>
+        <tr><td>Progress report, printable to PDF</td><td><span class="tag ok">Live</span></td><td>Growth by topic, score and time per problem</td></tr>
+        <tr><td>Accounts, cloud sync, teacher dashboard</td><td><span class="tag wip">Pilot-ready</span></td><td>Pseudonymous child profiles, parental consent recorded</td></tr>
+        <tr><td>Full English content</td><td><span class="tag wip">In progress</span></td><td>Interface done; lessons being translated</td></tr>
+        <tr><td>Arabic with right-to-left layout</td><td><span class="tag plan">Planned</span></td><td>Reviewed by a native-speaking teacher</td></tr>
+        <tr><td>Grades 1 and 4–6, Kangaroo and Bebras tracks</td><td><span class="tag plan">Planned</span></td><td>Same engine, new content</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <h2>See it for yourself</h2>
+      <p class="sub">The demo fills in sample progress so the plan looks lived-in. It never touches real results,
+        and “Exit demo” at the top removes it.</p>
+      <div class="cta">
+        <a class="btn red" href="index.html?demo=1&amp;lang=en">Open the demo</a>
+        <a class="btn sec" href="exam.html?e=1&amp;lang=en">Mock exam 1</a>
+        <a class="btn sec" href="assess.html?lang=en">Diagnostic test</a>
+        <a class="btn sec" href="onepager.html">One-pager (PDF-ready)</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="brandname">Olympiad Sprint</span> is a working name. SASMO, AMO, FMO and other olympiad names
+    belong to their organisers and are used only to describe competitions pupils take part in.
+  </div>
+</footer>
+
+<script src="assets/i18n.js"></script>
+<script>
+  // Название — из одного места (window.BRAND). Переключатель языка лендингу не нужен.
+  document.title = BRAND.name + ' — 28 days to a maths olympiad';
+  [].forEach.call(document.querySelectorAll('.brandname'), function (el) { el.textContent = BRAND.name; });
+</script>
+</body>
+</html>
