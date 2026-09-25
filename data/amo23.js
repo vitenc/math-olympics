@@ -46,6 +46,8 @@ window.AMO23 = {
 
   intro: {
     title: 'AMO 2023, 3 класс — работа целиком',
+    en: { title: 'AMO 2023, Grade 3 — the full paper',
+          body: "<p>The real American Mathematics Olympiad 2023 paper for Grade 3: 25 problems, 90 minutes, 100 points maximum. The format differs from SASMO, and so do the tactics.</p><ul><li><b>No penalties in any section.</b> A blank and a wrong answer are both worth zero, so answer everything, even with a guess.</li><li><b>Three sections with different values:</b> problems 1–15 are worth 3 points, 16–20 are worth 5, 21–25 are worth 6. The cheap problems come first: do not get stuck on them, the valuable ones wait at the end.</li><li><b>Sections B and C: the answer is a number.</b> On the answer sheet it is written with four digits: 7 → “0007”.</li></ul>" },
     body:
       '<p>Настоящая работа Американской математической олимпиады 2023 года ' +
       'для третьего класса: 25 задач, 90 минут, максимум 100 баллов. ' +

@@ -54,6 +54,8 @@ window.FMO22 = {
 
   intro: {
     title: 'FMO 2022, 3 класс — работа целиком',
+    en: { title: 'FMO 2022, Grade 3 — the full paper',
+          body: "<p>The real FMO 2022 paper for Grade 3: 21 problems, 100 points maximum. The format differs from SASMO and AMO.</p><ul><li><b>Four parts, and the problems get more valuable:</b> 1–10 are worth 3 points, 11–15 are worth 4, 16–20 are worth 8, and the last one is worth 10.</li><li><b>No penalty in problems 1–20.</b> A blank and a wrong answer are both worth zero. Answer everything.</li><li><b>Problem 21, the “Star of Hope”.</b> Correct: +10, wrong: <b>−10</b>. Answer only if you have checked your answer.</li></ul>" },
     body:
       '<p>Настоящая работа Летней математической олимпиады FMO 2022 года ' +
       'для третьего класса: 21 задача, максимум 100 баллов. Формат ' +

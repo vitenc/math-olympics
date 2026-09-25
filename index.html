@@ -189,7 +189,7 @@
         return '<a class="dcard exam" href="paper.html?p=' + p.id + '">' +
                  '<div class="dnum">' + p.olympiad + '</div>' +
                  '<div class="dttl">' + p.olympiad + ' ' + p.year + '</div>' +
-                 '<div class="dsk">' + p.note + '</div>' +
+                 '<div class="dsk">' + I18N.pick(p, 'note') + '</div>' +
                  paperResult(p) +
                '</a>';
       }).join('') +

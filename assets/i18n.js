@@ -203,7 +203,7 @@ window.I18N = (function () {
       '<b>The weakest topic is on top.</b> Give it the next 10 minutes of the lesson.',
 
     /* таблица умножения */
-    'Grade 2 &bull; тренажёр': 'Grade 2 &bull; drill',
+    'Grade 2 • тренажёр': 'Grade 2 • drill',
     'Таблица умножения на скорость': 'Times-table speed drill',
     'Таблица умножения на скорость — Grade 2': 'Times-table speed drill — Grade 2',
     'Статистика не будет сохраняться': 'Statistics will not be saved',
@@ -264,6 +264,69 @@ window.I18N = (function () {
     'Настройки и карта таблицы': 'Settings and table map',
     'раунд окончен': 'round over',
 
+    /* олимпиады прошлых лет: хаб и страница работы */
+    'Олимпиады прошлых лет': 'Past olympiad papers',
+    'целая работа за один раз, а не день программы': 'a whole paper in one sitting, not a programme day',
+    'Тест Коперника': 'Copernicus test',
+    'Коперник (архив)': 'Copernicus (archive, RU)',
+    'старая отдельная страница, счёт не ведётся': 'old standalone page, not scored',
+    'начато': 'started',
+    'Олимпиада целиком': 'Full olympiad paper',
+    '📖 Прорешать без таймера': '📖 Practise without a timer',
+    'К олимпиадам': 'To the olympiads',
+    'Такой работы нет в каталоге.': 'There is no such paper in the catalogue.',
+    'работа {y} · {g} класс': 'paper {y} · grade {g}',
+    'Кто решает {name}?': 'Who is solving {name}?',
+    'У каждого свой прогресс и свой журнал ошибок — один не перебьёт результаты другого.':
+      'Each child has their own progress and error journal, so one cannot overwrite the other.',
+    '▶ Начать работу ({n} минут)': '▶ Start the paper ({n} minutes)',
+    '▶ Продолжить работу (осталось {t})': '▶ Continue the paper ({t} left)',
+    'Не удалось загрузить <code>{file}</code>.': 'Could not load <code>{file}</code>.',
+    'Работа уже сдана: <b>{s} из {m}</b>{date}. Можно пройти её ещё раз — прошлый результат перезапишется.':
+      'Paper already taken: <b>{s} of {m}</b>{date}. You can take it again; the previous result will be overwritten.',
+    'Прошлая попытка не закончена: отвечено <b>{a} из {n}</b>, на часах осталось <b>{t}</b>.':
+      'Last attempt is unfinished: <b>{a} of {n}</b> answered, <b>{t}</b> left on the clock.',
+
+    /* правила счёта из наборов: AMO, FMO, MathXCEL */
+    'Секция C': 'Section C',
+    '+3 за верный · 0 за неверный и за пропуск. Штрафов нет — пустых ответов быть не должно даже там, где приходится гадать.':
+      '+3 correct · 0 wrong or blank. No penalties: never leave a blank, even where you have to guess.',
+    'СЕКЦИЯ B · задачи 16–20 · открытый ответ': 'SECTION B · problems 16–20 · open answer',
+    '+5 за верный · 0 за неверный. Ответ — целое число.': '+5 correct · 0 wrong. The answer is a whole number.',
+    'СЕКЦИЯ C · задачи 21–25 · открытый ответ': 'SECTION C · problems 21–25 · open answer',
+    '+6 за верный · 0 за неверный. Самые дорогие задачи работы.': '+6 correct · 0 wrong. The most valuable problems in the paper.',
+    '⚠️ Пустых ответов осталось <b>{n}</b>. В AMO штрафов нет ни в одной секции — отвечать нужно на все задачи, даже наугад.':
+      '⚠️ <b>{n}</b> answers were left blank. AMO has no penalties in any section: answer every problem, even with a guess.',
+    'Разминка': 'Warm-up',
+    'Ускорение': 'Acceleration',
+    'Сложный уровень': 'Hard level',
+    'Звезда надежды': 'Star of Hope',
+    'I. РАЗМИНКА · задачи 1–10 · выбор ответа': 'I. WARM-UP · problems 1–10 · multiple choice',
+    '+3 за верный · 0 за неверный и за пропуск. Штрафа нет — отвечай на всё, даже наугад.':
+      '+3 correct · 0 wrong or blank. No penalty: answer everything, even with a guess.',
+    'II. УСКОРЕНИЕ · задачи 11–15 · выбор ответа': 'II. ACCELERATION · problems 11–15 · multiple choice',
+    '+4 за верный · 0 за неверный и за пропуск.': '+4 correct · 0 wrong or blank.',
+    'III. СЛОЖНЫЙ УРОВЕНЬ · задачи 16–20 · выбор ответа': 'III. HARD LEVEL · problems 16–20 · multiple choice',
+    '+8 за верный · 0 за неверный и за пропуск. Самые выгодные задачи работы — оставь на них время.':
+      '+8 correct · 0 wrong or blank. The best-paying problems in the paper: save time for them.',
+    'IV. ЗВЕЗДА НАДЕЖДЫ · задача 21': 'IV. STAR OF HOPE · problem 21',
+    '+10 за верный · <b>−10 за неверный</b> · 0 за пропуск. Не уверен — лучше оставь пустым.':
+      '+10 correct · <b>−10 wrong</b> · 0 blank. Not sure? Better leave it blank.',
+    '⚠️ Пустых ответов в задачах 1–20 осталось <b>{n}</b>. Там штрафа нет — отвечать нужно на всё, даже наугад.':
+      '⚠️ <b>{n}</b> answers in problems 1–20 were left blank. There is no penalty there: answer everything, even with a guess.',
+    'Часть 1': 'Part 1',
+    'Часть 2': 'Part 2',
+    'ЧАСТЬ 1 · задачи 1–20 · выбор ответа': 'PART 1 · problems 1–20 · multiple choice',
+    '+2 за верный · за неверный и за пропуск 0. Штрафов нет, поэтому отвечать нужно на все задачи — даже наугад.':
+      '+2 correct · 0 wrong or blank. No penalties, so answer every problem, even with a guess.',
+    'ЧАСТЬ 2 · задачи 21–25 · открытый ответ': 'PART 2 · problems 21–25 · open answer',
+    '+3 за верный · 0 за неверный. Ответ — целое положительное число, в бланке его записывают четырьмя цифрами: 7 → «0007».':
+      '+3 correct · 0 wrong. The answer is a positive whole number, written with four digits on the sheet: 7 → “0007”.',
+    '⚠️ Пустых ответов осталось <b>{n}</b>. Штрафов в этой работе нет — отвечать нужно на все задачи, даже наугад.':
+      '⚠️ <b>{n}</b> answers were left blank. This paper has no penalties: answer every problem, even with a guess.',
+    'Ответ к этой задаче не восстановлен: в буклете олимпиады ключа нет. Реши её на бумаге и сверься с учителем — в счёт работы она не идёт.':
+      'The answer to this problem could not be recovered: the olympiad booklet has no key. Solve it on paper and check with a teacher; it does not count towards the score.',
+
     /* демо */
     'Демо-режим: показан образец прогресса, настоящие результаты не затронуты.':
       'Demo mode: sample progress is shown, real results are untouched.',
@@ -301,6 +364,11 @@ window.I18N = (function () {
     hintline:
       'A single day can be reset right on its card: the circled arrow in the corner. ' +
       'It clears the day\'s result and removes its problems from the error journal.',
+
+    papernote:
+      'Without the timer each answer is checked at once and hints are available: ' +
+      'use it to go through a paper after the exam or to prepare calmly. ' +
+      'Points are counted only in timed mode.',
 
     examgate:
       '<h3>Read the rules together, then press “Start”</h3>' +

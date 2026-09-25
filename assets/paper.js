@@ -42,25 +42,32 @@
   window.PAPERS = [
     { id: 'sasmo25',    olympiad: 'SASMO', year: 2025, grade: 3,
       set: 'sasmo25',    varName: 'SASMO25',    minutes: 90, max: 85,
-      note: '25 задач · 90 минут · счёт как на пробных экзаменах' },
+      note: '25 задач · 90 минут · счёт как на пробных экзаменах',
+      en: { note: '25 problems · 90 minutes · scored like the mock exams' } },
     { id: 'sasmo24',    olympiad: 'SASMO', year: 2024, grade: 3,
       set: 'sasmo24',    varName: 'SASMO24',    minutes: 90, max: 79,
-      note: '25 задач · 90 минут · к двум задачам ответ не восстановлен' },
+      note: '25 задач · 90 минут · к двум задачам ответ не восстановлен',
+      en: { note: '25 problems · 90 minutes · two problems have no recovered answer' } },
     { id: 'sasmo23',    olympiad: 'SASMO', year: 2023, grade: 3,
       set: 'sasmo23',    varName: 'SASMO23',    minutes: 90, max: 83,
-      note: '25 задач · 90 минут · к одной задаче ответ не восстановлен' },
+      note: '25 задач · 90 минут · к одной задаче ответ не восстановлен',
+      en: { note: '25 problems · 90 minutes · one problem has no recovered answer' } },
     { id: 'amo24',      olympiad: 'AMO', year: 2024, grade: 3,
       set: 'amo24',      varName: 'AMO24',      minutes: 90, max: 100,
-      note: '25 задач · 90 минут · три секции по 3, 5 и 6 баллов, штрафов нет' },
+      note: '25 задач · 90 минут · три секции по 3, 5 и 6 баллов, штрафов нет',
+      en: { note: '25 problems · 90 minutes · three sections worth 3, 5 and 6 points, no penalties' } },
     { id: 'amo23',      olympiad: 'AMO', year: 2023, grade: 3,
       set: 'amo23',      varName: 'AMO23',      minutes: 90, max: 100,
-      note: '25 задач · 90 минут · три секции по 3, 5 и 6 баллов, штрафов нет' },
+      note: '25 задач · 90 минут · три секции по 3, 5 и 6 баллов, штрафов нет',
+      en: { note: '25 problems · 90 minutes · three sections worth 3, 5 and 6 points, no penalties' } },
     { id: 'fmo22',      olympiad: 'FMO', year: 2022, grade: 3,
       set: 'fmo22',      varName: 'FMO22',      minutes: 60, max: 100,
-      note: '21 задача · 60 минут · четыре части по 3, 4, 8 и 10 баллов, штраф только в последней' },
+      note: '21 задача · 60 минут · четыре части по 3, 4, 8 и 10 баллов, штраф только в последней',
+      en: { note: '21 problems · 60 minutes · four parts worth 3, 4, 8 and 10 points, penalty only in the last' } },
     { id: 'mathxcel24', olympiad: 'MathXCEL', year: 2024, grade: 3,
       set: 'mathxcel24', varName: 'MATHXCEL24', minutes: 80, max: 55,
-      note: '25 задач · 80 минут · максимум 55 баллов, штрафов нет' }
+      note: '25 задач · 80 минут · максимум 55 баллов, штрафов нет',
+      en: { note: '25 problems · 80 minutes · 55 points maximum, no penalties' } }
   ];
 
   function byId(id) {
@@ -80,6 +87,8 @@
   }
 
   function open(cfg) {
+    var I = window.I18N;
+    var t = I.t;
     var who = cfg.who;
     var solver = window.SOLVERS[who];
     if (!solver) throw new Error('Неизвестный решающий: ' + who);
@@ -103,25 +112,21 @@
     var timer = document.getElementById('timer');
     if (timer) timer.textContent = '⏱ ' + window.SASMO.mmss(minutes * 60);
 
-    var s = document.createElement('script');
-    s.src = 'data/' + setId + '.js';
+    function fail() {
+      gate.innerHTML = '<div class="empty">' +
+                       t('Не удалось загрузить <code>{file}</code>.', { file: 'data/' + setId + '.js' }) +
+                       '<br><a href="index.html">' + t('К плану') + '</a>.</div>';
+    }
 
-    s.onerror = function () {
-      gate.innerHTML = '<div class="empty">Не удалось загрузить <code>data/' + setId + '.js</code>.' +
-                       '<br><a href="index.html">К плану</a>.</div>';
-    };
-
-    s.onload = function () {
-      var data = window[cfg.varName];
-      if (!data || !Array.isArray(data.questions) || !data.questions.length) { s.onerror(); return; }
-
+    window.SASMO.loadSet('data/' + setId + '.js', cfg.varName, function (data) {
+      if (!Array.isArray(data.questions) || !data.questions.length) { fail(); return; }
       var R = data.rules;
       var n = data.questions.length;
 
       // <title> у страницы свой и короче — «MathXCEL 2024 — Дима»; не трогаем
-      document.getElementById('ttl').textContent = data.intro.title;
+      document.getElementById('ttl').textContent = I.pick(data.intro, 'title');
       document.getElementById('rules').innerHTML =
-        '<div class="note warm">' + data.intro.body + '</div>';
+        '<div class="note warm">' + I.pick(data.intro, 'body') + '</div>';
 
       // Незаконченная попытка не пропадает: ответы и остаток времени сохранены.
       var rec = window.SASMO.getRecord(setId);
@@ -130,19 +135,20 @@
 
       var notes = '';
       if (rec && rec.done) {
-        notes += '<div class="resume"><div>Работа уже сдана: <b>' + rec.score + ' из ' + R.max + '</b>' +
-                 (rec.date ? ' · ' + rec.date : '') +
-                 '. Можно пройти её ещё раз — прошлый результат перезапишется.</div></div>';
+        notes += '<div class="resume"><div>' +
+                 t('Работа уже сдана: <b>{s} из {m}</b>{date}. Можно пройти её ещё раз — прошлый результат перезапишется.',
+                   { s: rec.score, m: R.max, date: rec.date ? ' · ' + rec.date : '' }) +
+                 '</div></div>';
       }
       if (att) {
-        notes += '<div class="resume"><div>Прошлая попытка не закончена: отвечено <b>' +
-                   window.SASMO.startedCount(rec) + ' из ' + n + '</b>, на часах осталось <b>' +
-                   window.SASMO.mmss(left) + '</b>.</div>' +
+        notes += '<div class="resume"><div>' +
+                   t('Прошлая попытка не закончена: отвечено <b>{a} из {n}</b>, на часах осталось <b>{t}</b>.',
+                     { a: window.SASMO.startedCount(rec), n: n, t: window.SASMO.mmss(left) }) + '</div>' +
                    '<button class="mini" id="wipeAttempt" ' +
-                     'data-armed-text="Нажми ещё раз — попытка сотрётся">Стереть попытку</button>' +
+                     'data-armed-text="Нажми ещё раз — попытка сотрётся">' + t('Стереть попытку') + '</button>' +
                  '</div>';
         document.getElementById('startBtn').textContent =
-          '▶ Продолжить работу (осталось ' + window.SASMO.mmss(left) + ')';
+          t('▶ Продолжить работу (осталось {t})', { t: window.SASMO.mmss(left) });
       }
       document.getElementById('attempt').innerHTML = notes;
 
@@ -152,7 +158,7 @@
         window.SASMO.armReset(btn, function () {
           window.SASMO.resetDay(setId);
           window.SASMO.resetDay(setId + '.free');   // и разбор без таймера — начисто так начисто
-          location.reload();
+          window.SASMO.reload();
         });
       });
 
@@ -175,9 +181,7 @@
         .addEventListener('click', function () { start('exam'); });
       document.getElementById('practiceBtn')
         .addEventListener('click', function () { start('practice'); });
-    };
-
-    document.head.appendChild(s);
+    }, fail);
   }
 
   /* Открыть работу из каталога: paper.html?p=sasmo25&who=dima.

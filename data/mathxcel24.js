@@ -47,6 +47,8 @@ window.MATHXCEL24 = {
 
   intro: {
     title: 'MathXCEL 2024, 3 класс — работа целиком',
+    en: { title: 'MathXCEL 2024, Grade 3 — the full paper',
+          body: "<p>This is the real MathXCEL 2024 paper for Grade 3: 25 problems, 80 minutes. The format differs from SASMO, and so do the tactics.</p><ul><li><b>No penalties in any part.</b> Never leave a blank: even a lucky guess among four options earns points, and it costs nothing.</li><li><b>Part 1 — problems 1–20, 2 points each.</b> Part 2 — problems 21–25, 3 points each. Maximum 55.</li><li><b>80 minutes for 25 problems</b> is a little over three minutes each. Two passes: first collect everything that solves at once.</li><li>In part 2 the answer can only be a positive whole number.</li></ul>" },
     body:
       '<p>Это настоящая работа соревнования MathXCEL 2024 для третьего класса: ' +
       '25 задач, 80 минут. Формат другой, чем у SASMO, и тактика тоже другая.</p>' +

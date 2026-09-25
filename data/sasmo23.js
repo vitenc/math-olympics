@@ -28,6 +28,8 @@ window.SASMO23 = {
 
   intro: {
     title: 'SASMO 2023, 3 класс — работа целиком',
+    en: { title: 'SASMO 2023, Grade 3 — the full paper',
+          body: "<p>The real SASMO 2023 paper for Grade 3: 25 problems, 90 minutes. Scoring is the same as in the programme's mock exams.</p><ul><li><b>Section A — problems 1–15, five options.</b> +2 correct, <b>−1 wrong</b>, 0 blank.</li><li><b>Section B — problems 16–25, the answer is a number.</b> +4 correct, no penalty for a wrong answer, so never leave a blank.</li><li>This paper has many “look carefully” problems: a shadow, a matching picture, a view from above. They are solved by comparing part by part rather than by calculating, and they eat time easily.</li><li><b>Problem 6 is shown without an answer:</b> the exact number of cubes cannot be recovered from the picture. It does not count towards the score.</li></ul>" },
     body:
       '<p>Настоящая работа олимпиады SASMO 2023 для третьего класса: ' +
       '25 задач, 90 минут. Счёт тот же, что на пробных экзаменах программы.</p>' +

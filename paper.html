@@ -11,8 +11,8 @@
 <div class="header">
   <div class="logo brand"></div>
   <div class="sub" id="sub"></div>
-  <h2 id="ttl">Олимпиада целиком</h2>
-  <div class="crumb"><a href="index.html#papers">← весь план</a></div>
+  <h2 id="ttl" data-i18n="Олимпиада целиком">Олимпиада целиком</h2>
+  <div class="crumb"><a href="index.html#papers" data-i18n="← весь план">← весь план</a></div>
   <div id="timer" class="timer" style="display:none"></div>
   <div class="pbar"><div class="pfill" id="pf"></div></div>
   <div class="scores">
@@ -28,9 +28,9 @@
     <div id="attempt"></div>
     <div style="text-align:center">
       <button class="btn" id="startBtn">▶ Начать работу</button>
-      <button class="btn sec" id="practiceBtn">📖 Прорешать без таймера</button>
+      <button class="btn sec" id="practiceBtn" data-i18n="📖 Прорешать без таймера">📖 Прорешать без таймера</button>
     </div>
-    <p class="hint-line">Без таймера ответ проверяется сразу и есть подсказка —
+    <p class="hint-line" data-i18n="papernote">Без таймера ответ проверяется сразу и есть подсказка —
       так работу разбирают после экзамена или готовятся к ней спокойно.
       Баллы считаются только в режиме с таймером.</p>
   </div>
@@ -45,7 +45,8 @@
 <script src="assets/paper.js"></script>
 <script>
 (function () {
-  var params = new URLSearchParams(location.search);
+  var t = I18N.t;
+  var params = SASMO.params();
   var paper = SASMO_PAPER.byId(params.get('p'));
   var who = params.get('who');
   var gate = document.getElementById('gate');
@@ -53,16 +54,16 @@
   function oops(html) {
     document.getElementById('timer').style.display = 'none';
     gate.innerHTML = '<div class="empty">' + html +
-                     '<br><br><a class="btn" href="index.html#papers">К олимпиадам</a></div>';
+                     '<br><br><a class="btn" href="index.html#papers">' + t('К олимпиадам') + '</a></div>';
   }
 
-  if (!paper) { oops('Такой работы нет в каталоге.'); return; }
+  if (!paper) { oops(t('Такой работы нет в каталоге.')); return; }
 
   var name = paper.olympiad + ' ' + paper.year;
   document.getElementById('ttl').textContent = name;
   document.title = name;
   document.getElementById('sub').textContent =
-    'работа ' + paper.year + ' · ' + paper.grade + ' класс';
+    t('работа {y} · {g} класс', { y: paper.year, g: paper.grade });
 
   /* За работой садятся разные дети, и прогресс у каждого свой. Кто именно —
      страница не угадывает: без ?who=… она сначала спрашивает. */
@@ -73,17 +74,17 @@
     }).join(' ');
     document.getElementById('timer').style.display = 'none';
     gate.innerHTML =
-      '<div class="note warm"><h3>Кто решает ' + name + '?</h3>' +
-      '<p>У каждого свой прогресс и свой журнал ошибок — один не перебьёт ' +
-      'результаты другого.</p></div>' +
+      '<div class="note warm"><h3>' + t('Кто решает {name}?', { name: name }) + '</h3>' +
+      '<p>' + t('У каждого свой прогресс и свой журнал ошибок — один не перебьёт результаты другого.') +
+      '</p></div>' +
       '<div style="text-align:center">' + pick + '</div>';
     return;
   }
 
   document.getElementById('sub').textContent =
-    'работа ' + paper.year + ' · ' + paper.grade + ' класс · ' + window.SOLVERS[who].name;
+    t('работа {y} · {g} класс', { y: paper.year, g: paper.grade }) + ' · ' + window.SOLVERS[who].name;
   document.getElementById('startBtn').textContent =
-    '▶ Начать работу (' + paper.minutes + ' минут)';
+    t('▶ Начать работу ({n} минут)', { n: paper.minutes });
 
   SASMO_PAPER.openById(paper.id, who);
 })();

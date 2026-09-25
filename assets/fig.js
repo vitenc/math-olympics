@@ -33,6 +33,8 @@
 
   function svg(w, h, inner, label) {
     w = Math.round(w); h = Math.round(h);
+    // подписи рисунков собраны по-русски из чисел задачи; по-английски — общая
+    if (window.I18N && window.I18N.lang === 'en') label = 'diagram for the problem';
     return '<figure class="fig"><svg viewBox="0 0 ' + w + ' ' + h + '" width="' + w + '" '
          + 'height="' + h + '" role="img" aria-label="' + esc(label || 'рисунок к задаче') + '">'
          + inner + '</svg></figure>';

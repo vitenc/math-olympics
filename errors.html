@@ -70,6 +70,8 @@
   if (crumb) crumb.innerHTML = '<a href="' + hub + '">' + back + '</a>';
 
   var errors = SASMO.getErrors();
+  document.getElementById('cO').textContent = t('{n} верно', { n: 0 });
+  document.getElementById('cN').textContent = t('{n} неверно', { n: 0 });
   var box = document.getElementById('box');
   var intro = document.getElementById('intro');
 

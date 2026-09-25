@@ -32,6 +32,8 @@ window.SASMO25 = {
 
   intro: {
     title: 'SASMO 2025, 3 класс — работа целиком',
+    en: { title: 'SASMO 2025, Grade 3 — the full paper',
+          body: "<p>This is the real SASMO 2025 paper for Grade 3: 25 problems, 90 minutes. Scoring is the same as in the programme's mock exams, so the tactics are the same too.</p><ul><li><b>Section A — problems 1–15, five options.</b> +2 correct, <b>−1 wrong</b>, 0 blank. Cannot rule out at least two options? Skip it.</li><li><b>Section B — problems 16–25, the answer is a number.</b> +4 correct, no penalty for a wrong answer. Never leave a blank.</li><li>The fifth option, “none of the above”, is not decoration: in this paper it is correct once.</li></ul>" },
     body:
       '<p>Это настоящая работа олимпиады SASMO 2025 для третьего класса: ' +
       '25 задач, 90 минут. Счёт тот же, что на пробных экзаменах программы, ' +
