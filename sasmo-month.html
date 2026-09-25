@@ -991,6 +991,35 @@ window.I18N = (function () {
     'Ответ к этой задаче не восстановлен: в буклете олимпиады ключа нет. Реши её на бумаге и сверься с учителем — в счёт работы она не идёт.':
       'The answer to this problem could not be recovered: the olympiad booklet has no key. Solve it on paper and check with a teacher; it does not count towards the score.',
 
+    /* замер «до и после» */
+    'замер': 'assessment',
+    'Замер: до и после': 'Before and after',
+    'Замер': 'Assessment',
+    'Входной тест': 'Starting test',
+    'Итоговый тест': 'Final test',
+    '{label} · замер «до и после» · форма {f}': '{label} · before-and-after test · form {f}',
+    '{what}: {n} задач, {m} минут': '{what}: {n} problems, {m} minutes',
+    'Этот тест уже пройден: <b>{s} из {m}</b>{date}. Пройти заново можно, но прошлый результат сотрётся — для замера это обычно не нужно.':
+      'This test is already done: <b>{s} of {m}</b>{date}. It can be retaken, but the previous result will be erased, which a measurement usually should not do.',
+    'Открыть отчёт': 'Open the report',
+    'Стереть результат': 'Erase the result',
+    'Нажми ещё раз — результат сотрётся': 'Tap again to erase the result',
+    'Входной тест ещё не пройден. Итоговый можно решать и так, но сравнивать будет не с чем.':
+      'The starting test has not been taken. The final test can still be done, but there will be nothing to compare it with.',
+    'Сначала входной': 'Starting test first',
+    '▶ Продолжить (осталось {t})': '▶ Continue ({t} left)',
+    '▶ Начать ({m} минут)': '▶ Start ({m} minutes)',
+    'Результат записан.': 'The result is saved.',
+    '⚠️ Пустых ответов осталось <b>{n}</b>. За ошибку здесь не снимают — в следующий раз пиши ответ всегда.':
+      '⚠️ <b>{n}</b> answers were left blank. Wrong answers lose nothing here, so next time always write an answer.',
+    '📈 Отчёт «до и после»': '📈 Before-and-after report',
+    'форма {f}': 'form {f}',
+    'до программы · 20 задач · 40 минут': 'before the programme · 20 problems · 40 minutes',
+    'после программы · другая форма той же сложности': 'after the programme · the other form, same difficulty',
+    'по нему видно, что дала программа': 'this shows what the programme changed',
+    'Отчёт': 'Report',
+    'прирост по темам, баллам и времени; печать в PDF': 'growth by topic, score and time; print to PDF',
+
     /* демо */
     'Демо-режим: показан образец прогресса, настоящие результаты не затронуты.':
       'Demo mode: sample progress is shown, real results are untouched.',
@@ -1033,6 +1062,21 @@ window.I18N = (function () {
       'Without the timer each answer is checked at once and hints are available: ' +
       'use it to go through a paper after the exam or to prepare calmly. ' +
       'Points are counted only in timed mode.',
+
+    assessabout:
+      '<p>This test shows what the child can do <b>before</b> the programme and <b>after</b> it. ' +
+      'There are two forms of equal difficulty: one is taken at the start, the other at the end, ' +
+      'and the difference shows what changed.</p>' +
+      '<ul>' +
+        '<li>Work alone: there are no hints, and the answers appear at the end.</li>' +
+        '<li>Each correct problem earns 1 point; wrong answers lose nothing. Never leave a blank.</li>' +
+        '<li>Not sure how to solve one? Move on and come back at the end.</li>' +
+      '</ul>',
+
+    assessnote:
+      'For the adult: the form (A or B) is chosen automatically and remembered, so half of the children ' +
+      'start with A and half with B. That keeps any difference between the forms from being mistaken for growth. ' +
+      'Results are on the Report page.',
 
     examgate:
       '<h3>Read the rules together, then press “Start”</h3>' +
@@ -1088,7 +1132,12 @@ window.I18N = (function () {
     for (var i = 0; i < els.length; i++) {
       var k = els[i].getAttribute('data-i18n');
       if (BLOCKS[k] !== undefined) els[i].innerHTML = BLOCKS[k];
-      else if (EN[k] !== undefined) els[i].innerHTML = EN[k];
+      // короткую строку переводим, только пока в элементе она сама: если
+      // скрипт страницы уже вписал туда своё («Пробный экзамен №1»), не трогаем
+      else if (EN[k] !== undefined && els[i].textContent.replace(/\s+/g, ' ').trim() ===
+               k.replace(/<[^>]+>/g, '').replace(/&bull;/g, '•').replace(/\s+/g, ' ').trim()) {
+        els[i].innerHTML = EN[k];
+      }
     }
   }
 
@@ -4752,6 +4801,7 @@ window.SASMO = (function () {
       start: src.start || 0,
       sections: sectionsFrom(src, n),
       blankNote: src.blankNote || '',
+      plain: !!src.plain,
       tiers: (src.tiers || []).map(function (x) { return [x[0], t(x[1])]; })
     };
     // Граница первой секции — её удобно спрашивать снаружи (проверки, тесты)
@@ -5105,6 +5155,7 @@ window.SASMO = (function () {
       var att = rec.exam;                  // при завершении экзамена это поле удаляется,
       if (!att || !Array.isArray(att.given)) return;   // значит здесь всегда живая попытка
       if (typeof att.left === 'number') this.left = att.left;
+      if (Array.isArray(att.t)) this.tAt = att.t.slice();
 
       att.given.forEach(function (g, i) {
         if (g === null || g === undefined || g === '' || i >= self.Q.length) return;
@@ -5169,8 +5220,10 @@ window.SASMO = (function () {
         return inp ? inp.value : null;
       }),
       left: this.left,
+      t: this.tAt || [],
       at: Date.now()
     };
+    if (this.cfg.meta) rec.meta = this.cfg.meta;
     rec.total = this.live;
     putRecord(this.cfg.setId, rec);
   };
@@ -5202,6 +5255,7 @@ window.SASMO = (function () {
     if (this.cfg.mode === 'exam') {
       this.mount.addEventListener('input', function (ev) {
         if (!ev.target.closest('.open-in')) return;
+        self.stamp(parseInt(ev.target.id.slice(2), 10));
         self.recount();
         self.saveExam();
       });
@@ -5246,6 +5300,7 @@ window.SASMO = (function () {
         this.given[i] = j;
         document.getElementById('o' + i + '_' + j).classList.add('cok');
       }
+      this.stamp(i);
       this.recount();
       this.saveExam();
       return;
@@ -5309,7 +5364,7 @@ window.SASMO = (function () {
       if (this.cfg.setId === 'errors' && q.key) forgetError(q.key);
     } else {
       this.no++;
-      if (!restoring) rememberError(this.cfg.setId, i, q);
+      if (!restoring) this.remember(i, q);
     }
     this.answered++;
     if (!restoring) this.noteAnswer(i, this.given[i], good);
@@ -5317,6 +5372,29 @@ window.SASMO = (function () {
     if (this.stepOn) this.showStep();
 
     if (!restoring && this.answered === this.live) this.finish(false);
+  };
+
+  /* Ошибка — в журнал. Замер «до и после» (cfg.noJournal) в журнал не пишет:
+     это измерение, а не занятие, и его задачи не должны всплывать в
+     «Работе над ошибками» и мешать с ошибками программы. */
+  Quiz.prototype.remember = function (i, q) {
+    if (this.cfg.noJournal) return;
+    rememberError(this.cfg.setId, i, q);
+  };
+
+  /* Сколько секунд прошло с начала попытки экзамена (по таймеру). */
+  Quiz.prototype.elapsed = function () {
+    if (!this.cfg.minutes || typeof this.left !== 'number') return null;
+    return Math.max(0, this.cfg.minutes * 60 - this.left);
+  };
+
+  /* Когда ответ на задачу i последний раз менялся — секунда от начала.
+     Из этого отчёт считает время на задачу. */
+  Quiz.prototype.stamp = function (i) {
+    var e = this.elapsed();
+    if (e === null) return;
+    if (!this.tAt) this.tAt = [];
+    this.tAt[i] = e;
   };
 
   /* --- пересчёт заполненности в экзамене --- */
@@ -5419,7 +5497,7 @@ window.SASMO = (function () {
         } else {
           this.no++;
           per[this.sectionOf(i)].no++;
-          rememberError(this.cfg.setId, i, q);
+          this.remember(i, q);
         }
       }
 
@@ -5454,7 +5532,7 @@ window.SASMO = (function () {
         var hb = c.querySelector('[data-act="hint"]');
         if (hb) hb.remove();
         this.no++;
-        rememberError(this.cfg.setId, i, q);
+        this.remember(i, q);
       }
     }
     this.answered = this.live;
@@ -5477,11 +5555,18 @@ window.SASMO = (function () {
     rec.total = this.live;
     rec.date = today();
     if (typeof score === 'number') rec.score = score;
+    if (typeof score === 'number') rec.max = this.rules.max;
+    // Сколько времени ушло и когда — для отчёта «до и после»
+    var spent = this.elapsed();
+    if (spent !== null) rec.spent = spent;
+    rec.ts = Date.now();
+    if (this.cfg.meta) rec.meta = this.cfg.meta;
     delete rec.exam;                       // попытка доведена до конца, продолжать нечего
 
     this.Q.forEach(function (q, i) {
       if (results) {
         rec.answers[i] = { g: results[i].g === undefined ? null : results[i].g, ok: results[i].ok };
+        if (self.tAt && typeof self.tAt[i] === 'number') rec.answers[i].t = self.tAt[i];
       } else if (!rec.answers[i]) {
         // задачи, до которых ребёнок не дошёл, тоже фиксируем — как неверные
         rec.answers[i] = { g: self.given[i] === undefined ? null : self.given[i], ok: false };
@@ -5520,6 +5605,8 @@ window.SASMO = (function () {
     for (var k = 0; k < R.tiers.length; k++) {
       if (score >= R.tiers[k][0]) { grade = R.tiers[k][1]; break; }
     }
+    // Замер: наград и порогов нет, есть только результат
+    if (R.plain) grade = t('Результат записан.');
 
     /* «+2» и «−1» — как правила выглядят в подписи к секции.
        Минус берём типографский, а не дефис: так он написан и в правилах. */
@@ -5543,7 +5630,7 @@ window.SASMO = (function () {
 
     document.getElementById('fs').textContent = score + ' / ' + R.max;
     document.getElementById('fd').innerHTML =
-      grade + ' <small>' + t('(ориентир — пороги зависят от года)') + '</small><br>' +
+      grade + (R.plain ? '' : ' <small>' + t('(ориентир — пороги зависят от года)') + '</small>') + '<br>' +
       (byTimer ? t('<b>Время вышло.</b> ') : '') +
       t('Верных: {a} · Неверных: {b} · Пропущено: {c}', { a: this.ok, b: this.no, c: blank });
 
@@ -5566,9 +5653,9 @@ window.SASMO = (function () {
           : '') +
       '</div>';
 
-    document.getElementById('resActions').innerHTML =
-      '<a class="btn" href="' + HUB_HREF + '">' + t('← К плану') + '</a>' +
-      '<a class="btn sec" href="' + ERRORS_HREF + '">' + t('Разобрать ошибки') + '</a>';
+    document.getElementById('resActions').innerHTML = this.cfg.actions ||
+      ('<a class="btn" href="' + HUB_HREF + '">' + t('← К плану') + '</a>' +
+       '<a class="btn sec" href="' + ERRORS_HREF + '">' + t('Разобрать ошибки') + '</a>');
     this.showPanel();
   };
 
@@ -6056,7 +6143,7 @@ window.EXAM3 = {"questions":[{"type":"mcq","topic":"Разряды","q":"Как�
 window.DAY28 = {"intro":{"title":"Завтра олимпиада — сегодня только уверенность","body":"<p>Сегодня ничего нового. Десять задач, которые ты точно умеешь решать. Это не тренировка, а разминка перед стартом.<\/p><p><b>Вспомни три правила на завтра:<\/b><\/p><ul><li>Секция A: не смог вычеркнуть хотя бы два варианта — <b>пропускай<\/b>, за неверный снимают балл.<\/li><li>Секция B: <b>всегда пиши число<\/b>, за ошибку там не снимают ничего.<\/li><li>Два прохода: сначала быстро забери все свои задачи, потом возвращайся к трудным. Не застревай.<\/li><\/ul><p>И последнее: подчёркивай вопрос в условии карандашом. Обиднее всего терять баллы, ответив на не тот вопрос.<\/p><p><b>Ложись спать пораньше.<\/b> Выспавшийся мозг на олимпиаде стоит дороже любой дополнительной темы.<\/p>"},"questions":[{"type":"mcq","topic":"Таблица умножения","q":"7 × 9 = ?","opts":["56","63","72","81"],"ans":1,"hint":"Можно посчитать как 7 × 10 &minus; 7.","ex":"7 × 9 = <b>63<\/b>."},{"type":"mcq","topic":"Периметр","q":"Чему равен периметр квадрата со стороной 7 см?","opts":["14 см","21 см","28 см","49 см"],"ans":2,"hint":"У квадрата четыре одинаковые стороны.","ex":"4 × 7 = <b>28 см<\/b>. А 49 — это площадь, не путай."},{"type":"mcq","topic":"Закономерности","q":"Продолжи ряд: 3, 6, 9, 12, ?","opts":["14","15","16","18"],"ans":1,"hint":"Это таблица умножения на 3.","ex":"Каждый раз прибавляется 3: 12 + 3 = <b>15<\/b>."},{"type":"mcq","topic":"Обратный ход","q":"К задуманному числу прибавили 5 и получили 20. Какое число задумали?","opts":["10","15","20","25"],"ans":1,"hint":"Обратное действие к сложению — вычитание.","ex":"20 &minus; 5 = <b>15<\/b>. ✓"},{"type":"mcq","topic":"Время","q":"Сколько минут в трёх часах?","opts":["90","120","180","300"],"ans":2,"hint":"В одном часе 60 минут.","ex":"3 × 60 = <b>180 минут<\/b>."},{"type":"open","topic":"Таблица умножения","q":"Вычисли: 6 × 8.","ans":48,"hint":"Можно посчитать как 6 × 4 × 2.","ex":"6 × 8 = <b>48<\/b>."},{"type":"open","topic":"Распилы","q":"Сколько распилов нужно, чтобы разрезать бревно на 4 части?","ans":3,"hint":"Распилов всегда на один меньше, чем частей.","ex":"4 &minus; 1 = <b>3<\/b> распила."},{"type":"open","topic":"Быстрый счёт","q":"Вычисли сумму: 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10.","ans":55,"hint":"Складывай парами с краёв — каждая пара даёт 11.","ex":"Пять пар по 11: 5 × 11 = <b>55<\/b>."},{"type":"open","topic":"Модельный метод","q":"У Ани и Бори вместе 30 конфет, причём поровну. Сколько конфет у Ани?","ans":15,"hint":"Поровну — значит пополам.","ex":"30 ÷ 2 = <b>15<\/b> конфет."},{"type":"open","topic":"Счёт фигур","fig":"grid:2,2","q":"Квадрат разделён на сетку 2 на 2 клетки. Сколько всего квадратов на рисунке?","ans":5,"hint":"Не забудь про большой квадрат целиком.","ex":"Четыре клетки и один большой квадрат: 4 + 1 = <b>5<\/b>."}]};
 </script>
 <script>
-window.SASMO_BUNDLE.pages.index = { title: "Grade 3 — подготовка за месяц", body: "<div class=\"header\">\n  <div class=\"logo brand\"><\/div>\n  <div class=\"sub\" id=\"sub\">Grade 3 &bull; подготовка за месяц<\/div>\n  <h2 data-i18n=\"План на 28 дней\">План на 28 дней<\/h2>\n  <div class=\"grades\" id=\"grades\">\n    <a href=\"index.html?g=2\" data-g=\"2\" data-i18n=\"2 класс\">2 класс<\/a>\n    <a href=\"index.html?g=3\" data-g=\"3\" data-i18n=\"3 класс\">3 класс<\/a>\n  <\/div>\n  <div class=\"pbar\"><div class=\"pfill\" id=\"pf\"><\/div><\/div>\n  <div class=\"scores\">\n    <span class=\"s-ok\" id=\"cO\">0 дней пройдено<\/span>\n    <span class=\"s-pt\" id=\"cP\">осталось 28<\/span>\n  <\/div>\n<\/div>\n\n<div class=\"container\">\n\n  <div class=\"motto\" data-i18n=\"motto\">\n    <em>«Упорный труд побеждает талант, когда талант не трудится усердно»<\/em>\n    <strong>25 задач · 90 минут · без калькулятора<\/strong>\n  <\/div>\n\n  <div class=\"hubstats\" id=\"stats\"><\/div>\n\n  <div class=\"note warm\" data-i18n=\"tactics\">\n    <h3>Две тактики, которые дают больше баллов, чем лишняя выученная тема<\/h3>\n    <ul>\n      <li><b>Секция A (задачи 1–15).<\/b> За неверный ответ снимают 1 балл, за пропуск — ноль.\n          Ткнуть наугад из четырёх вариантов в среднем <b>минус четверть балла<\/b>.\n          Правило: <i>не смог вычеркнуть хотя бы два варианта — пропускай<\/i>.<\/li>\n      <li><b>Секция B (задачи 16–25).<\/b> За неверный ответ не снимают ничего.\n          Правило: <i>пустых ответов быть не должно<\/i> — пиши число всегда,\n          даже если это грубая прикидка.<\/li>\n      <li><b>Время.<\/b> 90 минут на 25 задач ≈ 3,5 минуты на задачу. Идём в два прохода:\n          сначала быстро снимаем все «свои», потом возвращаемся к трудным.<\/li>\n    <\/ul>\n  <\/div>\n\n  <div class=\"tools\">\n    <a class=\"btn sec\" id=\"errLink\" href=\"errors.html\" data-i18n=\"📓 Работа над ошибками\">📓 Работа над ошибками<\/a>\n    <a class=\"btn\" id=\"multLink\" href=\"mult.html\" style=\"display:none\" data-i18n=\"⚡ Таблица умножения на скорость\">⚡ Таблица умножения на скорость<\/a>\n    <button class=\"mini ghost\" id=\"resetBtn\" data-i18n=\"Сбросить весь прогресс\"\n            data-armed-text=\"Точно сбросить? Нажми ещё раз\">Сбросить весь прогресс<\/button>\n  <\/div>\n\n  <div id=\"papers\"><\/div>\n\n  <div id=\"cal\"><\/div>\n\n  <p class=\"hint-line\" data-i18n=\"hintline\">Сбросить один день можно прямо на его карточке —\n    кружок со стрелкой в углу. Он стирает и результат дня, и его задачи из журнала ошибок.<\/p>\n\n  <div class=\"note\" data-i18n=\"lesson\">\n    <h3>Как проходит одно занятие (около 50 минут)<\/h3>\n    <ul>\n      <li><b>5 мин — разминка.<\/b> 20 примеров устного счёта на время.<\/li>\n      <li><b>10 мин — приём дня.<\/b> Разбираем две показательные задачи вместе.<\/li>\n      <li><b>25 мин — практика.<\/b> Задачи по нарастающей сложности, подсказку берём\n          только после честной попытки.<\/li>\n      <li><b>10 мин — ошибки.<\/b> Разбираем неверные и записываем в журнал.\n          Через пару дней прорешиваем их заново.<\/li>\n    <\/ul>\n  <\/div>\n\n<\/div>", run: function () {
+window.SASMO_BUNDLE.pages.index = { title: "Grade 3 — подготовка за месяц", body: "<div class=\"header\">\n  <div class=\"logo brand\"><\/div>\n  <div class=\"sub\" id=\"sub\">Grade 3 &bull; подготовка за месяц<\/div>\n  <h2 data-i18n=\"План на 28 дней\">План на 28 дней<\/h2>\n  <div class=\"grades\" id=\"grades\">\n    <a href=\"index.html?g=2\" data-g=\"2\" data-i18n=\"2 класс\">2 класс<\/a>\n    <a href=\"index.html?g=3\" data-g=\"3\" data-i18n=\"3 класс\">3 класс<\/a>\n  <\/div>\n  <div class=\"pbar\"><div class=\"pfill\" id=\"pf\"><\/div><\/div>\n  <div class=\"scores\">\n    <span class=\"s-ok\" id=\"cO\">0 дней пройдено<\/span>\n    <span class=\"s-pt\" id=\"cP\">осталось 28<\/span>\n  <\/div>\n<\/div>\n\n<div class=\"container\">\n\n  <div class=\"motto\" data-i18n=\"motto\">\n    <em>«Упорный труд побеждает талант, когда талант не трудится усердно»<\/em>\n    <strong>25 задач · 90 минут · без калькулятора<\/strong>\n  <\/div>\n\n  <div class=\"hubstats\" id=\"stats\"><\/div>\n\n  <div id=\"measure\"><\/div>\n\n  <div class=\"note warm\" data-i18n=\"tactics\">\n    <h3>Две тактики, которые дают больше баллов, чем лишняя выученная тема<\/h3>\n    <ul>\n      <li><b>Секция A (задачи 1–15).<\/b> За неверный ответ снимают 1 балл, за пропуск — ноль.\n          Ткнуть наугад из четырёх вариантов в среднем <b>минус четверть балла<\/b>.\n          Правило: <i>не смог вычеркнуть хотя бы два варианта — пропускай<\/i>.<\/li>\n      <li><b>Секция B (задачи 16–25).<\/b> За неверный ответ не снимают ничего.\n          Правило: <i>пустых ответов быть не должно<\/i> — пиши число всегда,\n          даже если это грубая прикидка.<\/li>\n      <li><b>Время.<\/b> 90 минут на 25 задач ≈ 3,5 минуты на задачу. Идём в два прохода:\n          сначала быстро снимаем все «свои», потом возвращаемся к трудным.<\/li>\n    <\/ul>\n  <\/div>\n\n  <div class=\"tools\">\n    <a class=\"btn sec\" id=\"errLink\" href=\"errors.html\" data-i18n=\"📓 Работа над ошибками\">📓 Работа над ошибками<\/a>\n    <a class=\"btn\" id=\"multLink\" href=\"mult.html\" style=\"display:none\" data-i18n=\"⚡ Таблица умножения на скорость\">⚡ Таблица умножения на скорость<\/a>\n    <button class=\"mini ghost\" id=\"resetBtn\" data-i18n=\"Сбросить весь прогресс\"\n            data-armed-text=\"Точно сбросить? Нажми ещё раз\">Сбросить весь прогресс<\/button>\n  <\/div>\n\n  <div id=\"papers\"><\/div>\n\n  <div id=\"cal\"><\/div>\n\n  <p class=\"hint-line\" data-i18n=\"hintline\">Сбросить один день можно прямо на его карточке —\n    кружок со стрелкой в углу. Он стирает и результат дня, и его задачи из журнала ошибок.<\/p>\n\n  <div class=\"note\" data-i18n=\"lesson\">\n    <h3>Как проходит одно занятие (около 50 минут)<\/h3>\n    <ul>\n      <li><b>5 мин — разминка.<\/b> 20 примеров устного счёта на время.<\/li>\n      <li><b>10 мин — приём дня.<\/b> Разбираем две показательные задачи вместе.<\/li>\n      <li><b>25 мин — практика.<\/b> Задачи по нарастающей сложности, подсказку берём\n          только после честной попытки.<\/li>\n      <li><b>10 мин — ошибки.<\/b> Разбираем неверные и записываем в журнал.\n          Через пару дней прорешиваем их заново.<\/li>\n    <\/ul>\n  <\/div>\n\n<\/div>", run: function () {
 
 (function () {
   var t = I18N.t;
@@ -6129,6 +6216,44 @@ window.SASMO_BUNDLE.pages.index = { title: "Grade 3 — подготовка з�
   // Тренажёр таблицы умножения сделан для второго класса
   if (grade === 2 && !BUNDLE) {
     document.getElementById('multLink').style.display = '';
+  }
+
+  /* ---- замер «до и после» ----
+
+     Входной тест решают до программы, итоговый — в конце; отчёт сравнивает
+     их по темам. Записи лежат в прогрессе класса под 'pre' и 'post'
+     (assess.html). В сборке страниц замера нет — и блока тоже.          */
+  if (!BUNDLE) {
+    var gq = grade === 3 ? '' : 'g=' + grade;
+    var mcard = function (stage, label, rec) {
+      var res = '';
+      if (rec && rec.done) {
+        res = '<div class="dres">✓ ' + rec.score + ' / ' + (rec.max || rec.total) +
+              (rec.meta && rec.meta.form ? ' · ' + t('форма {f}', { f: rec.meta.form }) : '') +
+              (rec.date ? ' · ' + rec.date : '') + '</div>';
+      } else if (rec && SASMO.startedCount(rec) > 0) {
+        res = '<div class="dres part">' + t('начато') + '</div>';
+      }
+      return '<a class="dcard exam' + (rec && rec.done ? ' done' : '') + '" href="assess.html?stage=' + stage +
+               (gq ? '&' + gq : '') + '">' +
+               '<div class="dnum">' + t('Замер') + '</div>' +
+               '<div class="dttl">' + label + '</div>' +
+               '<div class="dsk">' + t(stage === 'pre' ? 'до программы · 20 задач · 40 минут'
+                                                         : 'после программы · другая форма той же сложности') + '</div>' +
+               res + '</a>';
+    };
+    document.getElementById('measure').innerHTML =
+      '<div class="week"><h3>' + t('Замер: до и после') +
+      '<small>' + t('по нему видно, что дала программа') + '</small></h3>' +
+      '<div class="grid">' +
+        mcard('pre', t('Входной тест'), progress.pre) +
+        mcard('post', t('Итоговый тест'), progress.post) +
+        '<a class="dcard" href="report.html' + (gq ? '?' + gq : '') + '">' +
+          '<div class="dnum">' + t('Отчёт') + '</div>' +
+          '<div class="dttl">' + t('📈 Отчёт «до и после»') + '</div>' +
+          '<div class="dsk">' + t('прирост по темам, баллам и времени; печать в PDF') + '</div>' +
+        '</a>' +
+      '</div></div>';
   }
 
   /* ---- олимпиады прошлых лет ----

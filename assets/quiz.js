@@ -414,6 +414,7 @@ window.SASMO = (function () {
       start: src.start || 0,
       sections: sectionsFrom(src, n),
       blankNote: src.blankNote || '',
+      plain: !!src.plain,
       tiers: (src.tiers || []).map(function (x) { return [x[0], t(x[1])]; })
     };
     // Граница первой секции — её удобно спрашивать снаружи (проверки, тесты)
@@ -767,6 +768,7 @@ window.SASMO = (function () {
       var att = rec.exam;                  // при завершении экзамена это поле удаляется,
       if (!att || !Array.isArray(att.given)) return;   // значит здесь всегда живая попытка
       if (typeof att.left === 'number') this.left = att.left;
+      if (Array.isArray(att.t)) this.tAt = att.t.slice();
 
       att.given.forEach(function (g, i) {
         if (g === null || g === undefined || g === '' || i >= self.Q.length) return;
@@ -831,8 +833,10 @@ window.SASMO = (function () {
         return inp ? inp.value : null;
       }),
       left: this.left,
+      t: this.tAt || [],
       at: Date.now()
     };
+    if (this.cfg.meta) rec.meta = this.cfg.meta;
     rec.total = this.live;
     putRecord(this.cfg.setId, rec);
   };
@@ -864,6 +868,7 @@ window.SASMO = (function () {
     if (this.cfg.mode === 'exam') {
       this.mount.addEventListener('input', function (ev) {
         if (!ev.target.closest('.open-in')) return;
+        self.stamp(parseInt(ev.target.id.slice(2), 10));
         self.recount();
         self.saveExam();
       });
@@ -908,6 +913,7 @@ window.SASMO = (function () {
         this.given[i] = j;
         document.getElementById('o' + i + '_' + j).classList.add('cok');
       }
+      this.stamp(i);
       this.recount();
       this.saveExam();
       return;
@@ -971,7 +977,7 @@ window.SASMO = (function () {
       if (this.cfg.setId === 'errors' && q.key) forgetError(q.key);
     } else {
       this.no++;
-      if (!restoring) rememberError(this.cfg.setId, i, q);
+      if (!restoring) this.remember(i, q);
     }
     this.answered++;
     if (!restoring) this.noteAnswer(i, this.given[i], good);
@@ -979,6 +985,29 @@ window.SASMO = (function () {
     if (this.stepOn) this.showStep();
 
     if (!restoring && this.answered === this.live) this.finish(false);
+  };
+
+  /* Ошибка — в журнал. Замер «до и после» (cfg.noJournal) в журнал не пишет:
+     это измерение, а не занятие, и его задачи не должны всплывать в
+     «Работе над ошибками» и мешать с ошибками программы. */
+  Quiz.prototype.remember = function (i, q) {
+    if (this.cfg.noJournal) return;
+    rememberError(this.cfg.setId, i, q);
+  };
+
+  /* Сколько секунд прошло с начала попытки экзамена (по таймеру). */
+  Quiz.prototype.elapsed = function () {
+    if (!this.cfg.minutes || typeof this.left !== 'number') return null;
+    return Math.max(0, this.cfg.minutes * 60 - this.left);
+  };
+
+  /* Когда ответ на задачу i последний раз менялся — секунда от начала.
+     Из этого отчёт считает время на задачу. */
+  Quiz.prototype.stamp = function (i) {
+    var e = this.elapsed();
+    if (e === null) return;
+    if (!this.tAt) this.tAt = [];
+    this.tAt[i] = e;
   };
 
   /* --- пересчёт заполненности в экзамене --- */
@@ -1081,7 +1110,7 @@ window.SASMO = (function () {
         } else {
           this.no++;
           per[this.sectionOf(i)].no++;
-          rememberError(this.cfg.setId, i, q);
+          this.remember(i, q);
         }
       }
 
@@ -1116,7 +1145,7 @@ window.SASMO = (function () {
         var hb = c.querySelector('[data-act="hint"]');
         if (hb) hb.remove();
         this.no++;
-        rememberError(this.cfg.setId, i, q);
+        this.remember(i, q);
       }
     }
     this.answered = this.live;
@@ -1139,11 +1168,18 @@ window.SASMO = (function () {
     rec.total = this.live;
     rec.date = today();
     if (typeof score === 'number') rec.score = score;
+    if (typeof score === 'number') rec.max = this.rules.max;
+    // Сколько времени ушло и когда — для отчёта «до и после»
+    var spent = this.elapsed();
+    if (spent !== null) rec.spent = spent;
+    rec.ts = Date.now();
+    if (this.cfg.meta) rec.meta = this.cfg.meta;
     delete rec.exam;                       // попытка доведена до конца, продолжать нечего
 
     this.Q.forEach(function (q, i) {
       if (results) {
         rec.answers[i] = { g: results[i].g === undefined ? null : results[i].g, ok: results[i].ok };
+        if (self.tAt && typeof self.tAt[i] === 'number') rec.answers[i].t = self.tAt[i];
       } else if (!rec.answers[i]) {
         // задачи, до которых ребёнок не дошёл, тоже фиксируем — как неверные
         rec.answers[i] = { g: self.given[i] === undefined ? null : self.given[i], ok: false };
@@ -1182,6 +1218,8 @@ window.SASMO = (function () {
     for (var k = 0; k < R.tiers.length; k++) {
       if (score >= R.tiers[k][0]) { grade = R.tiers[k][1]; break; }
     }
+    // Замер: наград и порогов нет, есть только результат
+    if (R.plain) grade = t('Результат записан.');
 
     /* «+2» и «−1» — как правила выглядят в подписи к секции.
        Минус берём типографский, а не дефис: так он написан и в правилах. */
@@ -1205,7 +1243,7 @@ window.SASMO = (function () {
 
     document.getElementById('fs').textContent = score + ' / ' + R.max;
     document.getElementById('fd').innerHTML =
-      grade + ' <small>' + t('(ориентир — пороги зависят от года)') + '</small><br>' +
+      grade + (R.plain ? '' : ' <small>' + t('(ориентир — пороги зависят от года)') + '</small>') + '<br>' +
       (byTimer ? t('<b>Время вышло.</b> ') : '') +
       t('Верных: {a} · Неверных: {b} · Пропущено: {c}', { a: this.ok, b: this.no, c: blank });
 
@@ -1228,9 +1266,9 @@ window.SASMO = (function () {
           : '') +
       '</div>';
 
-    document.getElementById('resActions').innerHTML =
-      '<a class="btn" href="' + HUB_HREF + '">' + t('← К плану') + '</a>' +
-      '<a class="btn sec" href="' + ERRORS_HREF + '">' + t('Разобрать ошибки') + '</a>';
+    document.getElementById('resActions').innerHTML = this.cfg.actions ||
+      ('<a class="btn" href="' + HUB_HREF + '">' + t('← К плану') + '</a>' +
+       '<a class="btn sec" href="' + ERRORS_HREF + '">' + t('Разобрать ошибки') + '</a>');
     this.showPanel();
   };
 

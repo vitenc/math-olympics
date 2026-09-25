@@ -32,6 +32,8 @@
 
   <div class="hubstats" id="stats"></div>
 
+  <div id="measure"></div>
+
   <div class="note warm" data-i18n="tactics">
     <h3>Две тактики, которые дают больше баллов, чем лишняя выученная тема</h3>
     <ul>
@@ -152,6 +154,44 @@
   // Тренажёр таблицы умножения сделан для второго класса
   if (grade === 2 && !BUNDLE) {
     document.getElementById('multLink').style.display = '';
+  }
+
+  /* ---- замер «до и после» ----
+
+     Входной тест решают до программы, итоговый — в конце; отчёт сравнивает
+     их по темам. Записи лежат в прогрессе класса под 'pre' и 'post'
+     (assess.html). В сборке страниц замера нет — и блока тоже.          */
+  if (!BUNDLE) {
+    var gq = grade === 3 ? '' : 'g=' + grade;
+    var mcard = function (stage, label, rec) {
+      var res = '';
+      if (rec && rec.done) {
+        res = '<div class="dres">✓ ' + rec.score + ' / ' + (rec.max || rec.total) +
+              (rec.meta && rec.meta.form ? ' · ' + t('форма {f}', { f: rec.meta.form }) : '') +
+              (rec.date ? ' · ' + rec.date : '') + '</div>';
+      } else if (rec && SASMO.startedCount(rec) > 0) {
+        res = '<div class="dres part">' + t('начато') + '</div>';
+      }
+      return '<a class="dcard exam' + (rec && rec.done ? ' done' : '') + '" href="assess.html?stage=' + stage +
+               (gq ? '&' + gq : '') + '">' +
+               '<div class="dnum">' + t('Замер') + '</div>' +
+               '<div class="dttl">' + label + '</div>' +
+               '<div class="dsk">' + t(stage === 'pre' ? 'до программы · 20 задач · 40 минут'
+                                                         : 'после программы · другая форма той же сложности') + '</div>' +
+               res + '</a>';
+    };
+    document.getElementById('measure').innerHTML =
+      '<div class="week"><h3>' + t('Замер: до и после') +
+      '<small>' + t('по нему видно, что дала программа') + '</small></h3>' +
+      '<div class="grid">' +
+        mcard('pre', t('Входной тест'), progress.pre) +
+        mcard('post', t('Итоговый тест'), progress.post) +
+        '<a class="dcard" href="report.html' + (gq ? '?' + gq : '') + '">' +
+          '<div class="dnum">' + t('Отчёт') + '</div>' +
+          '<div class="dttl">' + t('📈 Отчёт «до и после»') + '</div>' +
+          '<div class="dsk">' + t('прирост по темам, баллам и времени; печать в PDF') + '</div>' +
+        '</a>' +
+      '</div></div>';
   }
 
   /* ---- олимпиады прошлых лет ----

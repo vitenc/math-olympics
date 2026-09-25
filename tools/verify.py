@@ -27,7 +27,7 @@ build/check.js смотрит на структуру набора: стольк
 ложны сразу два сравнения, а выбрать просят одно.
 
 Запуск:
-    python tools/verify.py                # все наборы
+    python tools/verify.py                # MathXCEL и формы замера
     python tools/verify.py mathxcel24     # только один
     python tools/verify.py --strict       # задача без `check` — тоже ошибка
 
@@ -200,7 +200,9 @@ def check_set(set_id, strict):
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith('-')]
     strict = '--strict' in sys.argv
-    sets = args or ['mathxcel24']
+    # Формы замера «до и после» проверяются всегда: по ним меряется прирост,
+    # и ошибка в ключе исказила бы сам результат пилота.
+    sets = args or ['mathxcel24', 'assess-g3a', 'assess-g3b', 'assess-g2a', 'assess-g2b']
 
     bad, skipped = [], []
     for set_id in sets:

@@ -327,6 +327,35 @@ window.I18N = (function () {
     'Ответ к этой задаче не восстановлен: в буклете олимпиады ключа нет. Реши её на бумаге и сверься с учителем — в счёт работы она не идёт.':
       'The answer to this problem could not be recovered: the olympiad booklet has no key. Solve it on paper and check with a teacher; it does not count towards the score.',
 
+    /* замер «до и после» */
+    'замер': 'assessment',
+    'Замер: до и после': 'Before and after',
+    'Замер': 'Assessment',
+    'Входной тест': 'Starting test',
+    'Итоговый тест': 'Final test',
+    '{label} · замер «до и после» · форма {f}': '{label} · before-and-after test · form {f}',
+    '{what}: {n} задач, {m} минут': '{what}: {n} problems, {m} minutes',
+    'Этот тест уже пройден: <b>{s} из {m}</b>{date}. Пройти заново можно, но прошлый результат сотрётся — для замера это обычно не нужно.':
+      'This test is already done: <b>{s} of {m}</b>{date}. It can be retaken, but the previous result will be erased, which a measurement usually should not do.',
+    'Открыть отчёт': 'Open the report',
+    'Стереть результат': 'Erase the result',
+    'Нажми ещё раз — результат сотрётся': 'Tap again to erase the result',
+    'Входной тест ещё не пройден. Итоговый можно решать и так, но сравнивать будет не с чем.':
+      'The starting test has not been taken. The final test can still be done, but there will be nothing to compare it with.',
+    'Сначала входной': 'Starting test first',
+    '▶ Продолжить (осталось {t})': '▶ Continue ({t} left)',
+    '▶ Начать ({m} минут)': '▶ Start ({m} minutes)',
+    'Результат записан.': 'The result is saved.',
+    '⚠️ Пустых ответов осталось <b>{n}</b>. За ошибку здесь не снимают — в следующий раз пиши ответ всегда.':
+      '⚠️ <b>{n}</b> answers were left blank. Wrong answers lose nothing here, so next time always write an answer.',
+    '📈 Отчёт «до и после»': '📈 Before-and-after report',
+    'форма {f}': 'form {f}',
+    'до программы · 20 задач · 40 минут': 'before the programme · 20 problems · 40 minutes',
+    'после программы · другая форма той же сложности': 'after the programme · the other form, same difficulty',
+    'по нему видно, что дала программа': 'this shows what the programme changed',
+    'Отчёт': 'Report',
+    'прирост по темам, баллам и времени; печать в PDF': 'growth by topic, score and time; print to PDF',
+
     /* демо */
     'Демо-режим: показан образец прогресса, настоящие результаты не затронуты.':
       'Demo mode: sample progress is shown, real results are untouched.',
@@ -369,6 +398,21 @@ window.I18N = (function () {
       'Without the timer each answer is checked at once and hints are available: ' +
       'use it to go through a paper after the exam or to prepare calmly. ' +
       'Points are counted only in timed mode.',
+
+    assessabout:
+      '<p>This test shows what the child can do <b>before</b> the programme and <b>after</b> it. ' +
+      'There are two forms of equal difficulty: one is taken at the start, the other at the end, ' +
+      'and the difference shows what changed.</p>' +
+      '<ul>' +
+        '<li>Work alone: there are no hints, and the answers appear at the end.</li>' +
+        '<li>Each correct problem earns 1 point; wrong answers lose nothing. Never leave a blank.</li>' +
+        '<li>Not sure how to solve one? Move on and come back at the end.</li>' +
+      '</ul>',
+
+    assessnote:
+      'For the adult: the form (A or B) is chosen automatically and remembered, so half of the children ' +
+      'start with A and half with B. That keeps any difference between the forms from being mistaken for growth. ' +
+      'Results are on the Report page.',
 
     examgate:
       '<h3>Read the rules together, then press “Start”</h3>' +
@@ -424,7 +468,12 @@ window.I18N = (function () {
     for (var i = 0; i < els.length; i++) {
       var k = els[i].getAttribute('data-i18n');
       if (BLOCKS[k] !== undefined) els[i].innerHTML = BLOCKS[k];
-      else if (EN[k] !== undefined) els[i].innerHTML = EN[k];
+      // короткую строку переводим, только пока в элементе она сама: если
+      // скрипт страницы уже вписал туда своё («Пробный экзамен №1»), не трогаем
+      else if (EN[k] !== undefined && els[i].textContent.replace(/\s+/g, ' ').trim() ===
+               k.replace(/<[^>]+>/g, '').replace(/&bull;/g, '•').replace(/\s+/g, ' ').trim()) {
+        els[i].innerHTML = EN[k];
+      }
     }
   }
 

@@ -936,14 +936,103 @@ if (!fs.existsSync(path.join(ROOT, 'sasmo-month.html'))) {
      'у задачи с английской темой должна остаться кнопка теории');
 }
 
+/* ------ 16. замер «до и после»: форма, контрбалансировка, без журнала ------ */
+
+/* assess.html прогоняется целиком, со своими скриптами (JSDOM.fromFile).
+   Проверяем: «до» получает форму A или B и запоминает её, «после» —
+   другую; ответы и время на задачу пишутся в запись, журнал ошибок
+   пустой, а в итоге нет «порогов наград». */
+async function assessPage(query, storage) {
+  const quiet = new VirtualConsole();
+  quiet.on('jsdomError', (e) => { if (!/scrollTo|Not implemented/.test(e.message)) failures.push('assess.html: ' + e.message); });
+  /* Загрузку ресурсов jsdom меняет от версии к версии, поэтому скрипты
+     страницы и формы замера вклеиваем в HTML сами: SASMO.loadSet находит
+     набор уже готовым и ничего не грузит. */
+  const inline = (code) => '<script>' + code.replace(/<\/script/gi, '<\\/script') + '</script>';
+  const forms = ['g3a', 'g3b', 'g2a', 'g2b']
+    .map(f => inline(fs.readFileSync(path.join(ROOT, 'data', 'assess-' + f + '.js'), 'utf8'))).join('\n');
+  const html = fs.readFileSync(path.join(ROOT, 'assess.html'), 'utf8')
+    .replace(/<script src="([^"]+)"><\/script>/g, (m, src) => inline(fs.readFileSync(path.join(ROOT, src), 'utf8')))
+    .replace('<script>\n/* ====', forms + '\n<script>\n/* ====');
+  const dom = new JSDOM(html, {
+    url: 'http://localhost/assess.html' + query,
+    runScripts: 'dangerously', pretendToBeVisual: true, virtualConsole: quiet,
+    beforeParse(w) {
+      w.matchMedia = () => ({ matches: false, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} });
+      w.scrollTo = () => {};
+      w.localStorage.clear();
+      for (const [k, v] of Object.entries(storage || {})) w.localStorage.setItem(k, v);
+    }
+  });
+  windows.push(dom.window);
+  return dom.window;
+}
+
+function dump(w) {
+  const out = {};
+  for (let i = 0; i < w.localStorage.length; i++) {
+    const k = w.localStorage.key(i);
+    out[k] = w.localStorage.getItem(k);
+  }
+  return out;
+}
+
+async function assessTests() {
+  const w = await assessPage('?stage=pre');
+  const d = w.document;
+  ok(/форма [AB]/.test(d.getElementById('sub').textContent), 'на входном тесте должна быть видна форма A или B');
+  d.getElementById('startBtn').click();
+  const qs = [...d.querySelectorAll('.qcard')];
+  ok(qs.length === 20, `во входном тесте 20 задач, а их ${qs.length}`);
+  ok(!d.querySelector('[data-act="hint"]'), 'на замере не должно быть подсказок');
+
+  const form = JSON.parse(w.localStorage.getItem('sasmo.progress') || '{}').pre;
+  const f = form && form.meta && form.meta.form;
+  ok(f === 'A' || f === 'B', 'форма «до» должна запомниться сразу при старте');
+  const data = w['ASSESSG3' + f];
+  // все верно, кроме первой — её оставляем неверной
+  data.questions.forEach((q, i) => {
+    if (q.type === 'mcq') d.getElementById('o' + i + '_' + (i === 0 ? (q.ans + 1) % 4 : q.ans)).click();
+    else {
+      const inp = d.getElementById('in' + i);
+      inp.value = String(q.ans);
+      inp.dispatchEvent(new w.Event('input', { bubbles: true }));
+    }
+  });
+  d.getElementById('finishBtn').click();
+
+  const pre = JSON.parse(w.localStorage.getItem('sasmo.progress')).pre;
+  ok(pre && pre.done && pre.score === 19 && pre.max === 20, 'входной тест: 19 из 20');
+  ok(typeof pre.spent === 'number', 'в записи замера должно быть потраченное время');
+  ok(pre.answers[5] && typeof pre.answers[5].t === 'number', 'у ответа замера должно быть время');
+  ok(JSON.parse(w.localStorage.getItem('sasmo.errors') || '[]').length === 0, 'замер не должен писать в журнал ошибок');
+  ok(!/пороги зависят/.test(d.getElementById('res').textContent), 'в итоге замера не нужны пороги наград');
+  ok(!!d.querySelector('#resActions a[href^="report.html"]'), 'из итога замера должна вести ссылка на отчёт');
+
+  const w2 = await assessPage('', dump(w));
+  ok(w2.document.getElementById('ttl').textContent === 'Итоговый тест',
+     'после входного теста страница должна предлагать итоговый');
+  const other = f === 'A' ? 'B' : 'A';
+  ok(new RegExp('форма ' + other).test(w2.document.getElementById('sub').textContent),
+     `итоговый тест должен достаться другой форме (${other})`);
+
+  // второй класс — свои формы и свой ключ
+  const w3 = await assessPage('?g=2');
+  w3.document.getElementById('startBtn').click();
+  ok(!!JSON.parse(w3.localStorage.getItem('sasmo.g2.progress') || '{}').pre, 'замер 2 класса пишет в sasmo.g2.progress');
+  ok(!w3.localStorage.getItem('sasmo.progress'), 'замер 2 класса не трогает прогресс 3 класса');
+}
+
 /* --------------------------------------------------------------- итог --- */
 
-windows.forEach(w => w.close());
+assessTests().catch((e) => failures.push('замер: ' + e.stack)).then(() => {
+  windows.forEach(w => w.close());
 
-if (failures.length) {
-  console.log(`ОШИБКИ (${failures.length}):`);
-  failures.forEach(f => console.log('  ✗ ' + f));
-  process.exit(1);
-}
-console.log('Страницы тренажёра: проверки пройдены.');
-process.exit(0);
+  if (failures.length) {
+    console.log(`ОШИБКИ (${failures.length}):`);
+    failures.forEach(f => console.log('  ✗ ' + f));
+    process.exit(1);
+  }
+  console.log('Страницы тренажёра: проверки пройдены.');
+  process.exit(0);
+});

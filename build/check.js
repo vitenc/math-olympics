@@ -267,12 +267,56 @@ function crossGrades() {
   }
 }
 
+/* Замер «до и после»: две параллельные формы на класс. По разнице между
+   ними меряется прирост, поэтому формы обязаны быть парными: задача №k
+   в A и в B — одна тема и один тип, у выбора ответа — столько же вариантов.
+   Каждая задача несёт перевод и символьную проверку ответа (check или
+   optcheck, см. tools/verify.py): ключ здесь — это данные пилота. */
+function checkAssess() {
+  for (const grade of [3, 2]) {
+    const forms = {};
+    for (const f of ['a', 'b']) {
+      const id = `assess-g${grade}${f}`;
+      const v = `ASSESSG${grade}${f.toUpperCase()}`;
+      const file = path.join(ROOT, 'data', id + '.js');
+      if (!fs.existsSync(file)) { errors.push(`Замер: нет файла data/${id}.js`); continue; }
+      require(file);
+      const data = global.window[v];
+      if (!data || !Array.isArray(data.questions)) { errors.push(`Замер: нет window.${v}.questions`); continue; }
+      const where = `Замер ${grade} класс / форма ${f.toUpperCase()}`;
+      checkSet(where, data, new Map());
+      data.questions.forEach((q, i) => {
+        if (!q.en || !q.en.q) errors.push(`${where} #${i + 1}: нет перевода en`);
+        if (!q.check && !q.optcheck) errors.push(`${where} #${i + 1}: нет check/optcheck — ответ не сверить с sympy`);
+        if (q.hint && /Подсказ/.test(q.hint)) warns.push(`${where} #${i + 1}: подсказка ссылается на кнопку`);
+      });
+      forms[f] = data;
+    }
+    const A = forms.a, B = forms.b;
+    if (!A || !B) continue;
+    if (A.questions.length !== B.questions.length) {
+      errors.push(`Замер ${grade} класс: в формах разное число задач (${A.questions.length} и ${B.questions.length})`);
+      continue;
+    }
+    if (A.minutes !== B.minutes) errors.push(`Замер ${grade} класс: у форм разное время`);
+    A.questions.forEach((a, i) => {
+      const b = B.questions[i];
+      const at = `Замер ${grade} класс #${i + 1}`;
+      if (a.topic !== b.topic) errors.push(`${at}: темы в формах разные («${a.topic}» и «${b.topic}»)`);
+      if (a.type !== b.type) errors.push(`${at}: типы в формах разные`);
+      if (a.type === 'mcq' && a.opts.length !== b.opts.length) errors.push(`${at}: разное число вариантов`);
+      if (a.q === b.q) errors.push(`${at}: формы A и B совпадают дословно`);
+    });
+    console.log(`Замер ${grade} класс: формы A и B по ${A.questions.length} задач`);
+  }
+}
+
 const only = process.argv[2] ? parseInt(process.argv[2], 10) : null;
 for (const grade of [3, 2]) {
   if (only && only !== grade) continue;
   checkGrade(grade);
 }
-if (!only) { crossGrades(); checkPapers(); }
+if (!only) { crossGrades(); checkPapers(); checkAssess(); }
 
 if (warns.length) {
   console.log(`\nЗамечания (${warns.length}):`);

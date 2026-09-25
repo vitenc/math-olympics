@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Замер: до и после</title>
+<link rel="stylesheet" href="assets/quiz.css">
+</head>
+<body>
+
+<div class="header">
+  <div class="logo brand"></div>
+  <div class="sub" id="sub" data-i18n="замер">замер</div>
+  <h2 id="ttl" data-i18n="Замер: до и после">Замер: до и после</h2>
+  <div class="crumb"><a href="index.html">← весь план</a></div>
+  <div id="timer" class="timer" style="display:none">⏱ 40:00</div>
+  <div class="pbar"><div class="pfill" id="pf"></div></div>
+  <div class="scores">
+    <span class="s-ok" id="cO"></span>
+    <span class="s-no" id="cN"></span>
+    <span class="s-pt" id="cP"></span>
+  </div>
+</div>
+
+<div class="container">
+  <div id="gate">
+    <div class="note warm">
+      <h3 id="aboutTitle"></h3>
+      <div data-i18n="assessabout">
+        <p>Этот тест показывает, что ребёнок умеет <b>до</b> программы и <b>после</b> неё.
+          Форм две, они одинаковой сложности: одну решают в начале, другую — в конце,
+          и по разнице видно, что изменилось.</p>
+        <ul>
+          <li>Решай сам: подсказок здесь нет, ответы откроются после конца.</li>
+          <li>За каждую верную задачу — 1 балл, за ошибку баллы не снимают. Пустых ответов быть не должно.</li>
+          <li>Не знаешь, как решать, — переходи к следующей и вернись в конце.</li>
+        </ul>
+      </div>
+    </div>
+    <div id="attempt"></div>
+    <div style="text-align:center">
+      <button class="btn" id="startBtn">▶</button>
+    </div>
+    <p class="hint-line" data-i18n="assessnote">Взрослому: форма (A или B) выбирается сама и запоминается —
+      у половины детей «до» будет A, у другой половины B. Так разница между формами не
+      путается с приростом. Результаты — на странице «Отчёт».</p>
+  </div>
+  <div id="box"></div>
+</div>
+
+<script src="assets/i18n.js"></script>
+<script src="assets/plan.js"></script>
+<script src="assets/plan2.js"></script>
+<script src="assets/fig.js"></script>
+<script src="assets/theory.js"></script>
+<script src="assets/quiz.js"></script>
+<script>
+/* ==========================================================================
+   Замер «до и после»
+
+   Две параллельные формы на класс (data/assess-g3a.js, …-g3b.js): 20 задач,
+   40 минут, по баллу за задачу, без штрафов и подсказок. «До» решают перед
+   программой, «после» — в конце (день 27–28); контрольная группа пишет обе
+   без программы.
+
+   Контрбалансировка: какая форма идёт «до», выбирается случайно при первом
+   входе и запоминается в записи «pre» (meta.form); «после» всегда достаётся
+   другая форма. Взрослый может задать форму явно: ?form=A.
+
+   Результаты лежат в прогрессе класса под setId 'pre' и 'post' — рядом с
+   днями программы, поэтому их видят отчёт (report.html) и синхронизация.
+   В журнал ошибок замер не пишет (cfg.noJournal).
+   ========================================================================== */
+(function () {
+  var t = I18N.t;
+  var params = SASMO.params();
+  var PLAN = window.PLANS[params.get('g') === '2' ? 2 : 3];
+  SASMO.usePlan(PLAN);
+
+  var g = PLAN.grade;
+  var hub = 'index.html' + (g === 3 ? '' : '?g=' + g);
+  var gate = document.getElementById('gate');
+  var box = document.getElementById('box');
+
+  var pre = SASMO.getRecord('pre');
+  var post = SASMO.getRecord('post');
+
+  // Какой замер сейчас: явно из ?stage= или первый несданный
+  var stage = params.get('stage');
+  if (stage !== 'pre' && stage !== 'post') stage = pre && pre.done ? 'post' : 'pre';
+
+  function formOf(rec) { return rec && rec.meta && rec.meta.form; }
+  function other(f) { return f === 'A' ? 'B' : 'A'; }
+
+  var asked = String(params.get('form') || '').toUpperCase();
+  var form;
+  if (asked === 'A' || asked === 'B') form = asked;
+  else if (stage === 'pre') form = formOf(pre) || (Math.random() < 0.5 ? 'A' : 'B');
+  else form = formOf(post) || (formOf(pre) ? other(formOf(pre)) : 'B');
+
+  var title = stage === 'pre' ? t('Входной тест') : t('Итоговый тест');
+  document.getElementById('ttl').textContent = title;
+  document.getElementById('sub').textContent =
+    t('{label} · замер «до и после» · форма {f}', { label: PLAN.label, f: form });
+  document.querySelector('.crumb').innerHTML = '<a href="' + hub + '">' + t('← весь план') + '</a>';
+  document.title = title + ' — ' + BRAND.name;
+
+  var file = 'data/assess-g' + g + form.toLowerCase() + '.js';
+  var varName = 'ASSESSG' + g + form;
+
+  SASMO.loadSet(file, varName, onload, function () {
+    gate.innerHTML = '<div class="empty">' + t('Не удалось загрузить <code>{file}</code>.', { file: file }) +
+                     ' <a href="' + hub + '">' + t('К плану') + '</a>.</div>';
+  });
+
+  function onload(data) {
+    var n = data.questions.length;
+    var minutes = data.minutes || 40;
+    document.getElementById('timer').textContent = '⏱ ' + SASMO.mmss(minutes * 60);
+
+    document.getElementById('aboutTitle').textContent =
+      t('{what}: {n} задач, {m} минут', { what: title, n: n, m: minutes });
+
+    var rec = stage === 'pre' ? pre : post;
+    var att = rec && rec.exam && Array.isArray(rec.exam.given) ? rec.exam : null;
+    var left = att && typeof att.left === 'number' ? att.left : minutes * 60;
+    var notes = '';
+
+    if (rec && rec.done) {
+      notes += '<div class="resume"><div>' +
+        t('Этот тест уже пройден: <b>{s} из {m}</b>{date}. Пройти заново можно, но прошлый результат сотрётся — для замера это обычно не нужно.',
+          { s: rec.score, m: rec.max || n, date: rec.date ? ' · ' + rec.date : '' }) +
+        ' <a href="report.html' + (g === 3 ? '' : '?g=' + g) + '">' + t('Открыть отчёт') + '</a></div>' +
+        '<button class="mini" id="wipe" data-armed-text="Нажми ещё раз — результат сотрётся">' +
+          t('Стереть результат') + '</button></div>';
+      document.getElementById('startBtn').style.display = 'none';
+    } else if (att) {
+      notes += '<div class="resume"><div>' +
+        t('Прошлая попытка не закончена: отвечено <b>{a} из {n}</b>, на часах осталось <b>{t}</b>.',
+          { a: SASMO.startedCount(rec), n: n, t: SASMO.mmss(left) }) + '</div>' +
+        '<button class="mini" id="wipe" data-armed-text="Нажми ещё раз — попытка сотрётся">' +
+          t('Стереть попытку') + '</button></div>';
+    }
+    if (stage === 'post' && !(pre && pre.done)) {
+      notes += '<div class="note"><p>' +
+        t('Входной тест ещё не пройден. Итоговый можно решать и так, но сравнивать будет не с чем.') +
+        ' <a href="assess.html?stage=pre' + (g === 3 ? '' : '&g=' + g) + '">' + t('Сначала входной') + '</a></p></div>';
+    }
+    document.getElementById('attempt').innerHTML = notes;
+
+    document.getElementById('startBtn').textContent = att
+      ? t('▶ Продолжить (осталось {t})', { t: SASMO.mmss(left) })
+      : t('▶ Начать ({m} минут)', { m: minutes });
+
+    var wipe = document.getElementById('wipe');
+    if (wipe) wipe.addEventListener('click', function () {
+      var btn = this;
+      SASMO.armReset(btn, function () {
+        SASMO.resetDay(stage);
+        SASMO.reload();
+      });
+    });
+
+    var report = 'report.html' + (g === 3 ? '' : '?g=' + g);
+    document.getElementById('startBtn').addEventListener('click', function () {
+      gate.style.display = 'none';
+      document.getElementById('timer').style.display = 'inline-block';
+      SASMO.run({
+        mount: box,
+        questions: data.questions,
+        mode: 'exam',
+        setId: stage,
+        minutes: minutes,
+        noJournal: true,
+        meta: { kind: 'assess', stage: stage, form: form, grade: g, n: n },
+        rules: {
+          start: 0, plain: true, tiers: [],
+          sections: [{ ok: 1, no: 0, name: t('Замер'), head: '', note: '' }],
+          blankNote: t('⚠️ Пустых ответов осталось <b>{n}</b>. За ошибку здесь не снимают — в следующий раз пиши ответ всегда.')
+        },
+        actions: '<a class="btn" href="' + report + '">' + t('📈 Отчёт «до и после»') + '</a>' +
+                 '<a class="btn sec" href="' + hub + '">' + t('← К плану') + '</a>'
+      });
+      window.scrollTo({ top: 0 });
+    });
+  }
+})();
+</script>
+</body>
+</html>
