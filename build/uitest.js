@@ -942,20 +942,21 @@ if (!fs.existsSync(path.join(ROOT, 'sasmo-month.html'))) {
    Проверяем: «до» получает форму A или B и запоминает её, «после» —
    другую; ответы и время на задачу пишутся в запись, журнал ошибок
    пустой, а в итоге нет «порогов наград». */
-async function assessPage(query, storage) {
+async function assessPage(query, storage, page) {
+  page = page || 'assess.html';
   const quiet = new VirtualConsole();
-  quiet.on('jsdomError', (e) => { if (!/scrollTo|Not implemented/.test(e.message)) failures.push('assess.html: ' + e.message); });
+  quiet.on('jsdomError', (e) => { if (!/scrollTo|Not implemented/.test(e.message)) failures.push(page + ': ' + e.message); });
   /* Загрузку ресурсов jsdom меняет от версии к версии, поэтому скрипты
      страницы и формы замера вклеиваем в HTML сами: SASMO.loadSet находит
      набор уже готовым и ничего не грузит. */
   const inline = (code) => '<script>' + code.replace(/<\/script/gi, '<\\/script') + '</script>';
   const forms = ['g3a', 'g3b', 'g2a', 'g2b']
     .map(f => inline(fs.readFileSync(path.join(ROOT, 'data', 'assess-' + f + '.js'), 'utf8'))).join('\n');
-  const html = fs.readFileSync(path.join(ROOT, 'assess.html'), 'utf8')
+  const html = fs.readFileSync(path.join(ROOT, page), 'utf8')
     .replace(/<script src="([^"]+)"><\/script>/g, (m, src) => inline(fs.readFileSync(path.join(ROOT, src), 'utf8')))
     .replace('<script>\n/* ====', forms + '\n<script>\n/* ====');
   const dom = new JSDOM(html, {
-    url: 'http://localhost/assess.html' + query,
+    url: 'http://localhost/' + page + query,
     runScripts: 'dangerously', pretendToBeVisual: true, virtualConsole: quiet,
     beforeParse(w) {
       w.matchMedia = () => ({ matches: false, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} });
@@ -1015,6 +1016,21 @@ async function assessTests() {
   const other = f === 'A' ? 'B' : 'A';
   ok(new RegExp('форма ' + other).test(w2.document.getElementById('sub').textContent),
      `итоговый тест должен достаться другой форме (${other})`);
+
+  // отчёт по этим же данным: входной есть, итогового ещё нет
+  const r = await assessPage('', dump(w), 'report.html');
+  const tiles = [...r.document.querySelectorAll('.tile .v')].map(x => x.textContent);
+  ok(tiles[0] === '19 / 20', 'отчёт должен показать входной тест 19 / 20, а показывает ' + tiles[0]);
+  ok(tiles[1] === '—', 'итогового теста ещё нет — в отчёте прочерк');
+  ok(r.document.querySelectorAll('.rep table')[1].querySelectorAll('tr').length === 21,
+     'в отчёте по темам должно быть 20 строк');
+
+  // пример отчёта: демо с обоими тестами
+  const rd = await assessPage('?demo=1', {}, 'report.html');
+  const dt = [...rd.document.querySelectorAll('.tile .v')].map(x => x.textContent);
+  ok(dt[0] === '11 / 20' && dt[1] === '16 / 20' && dt[2] === '+5', 'демо-отчёт: 11 → 16, прирост +5, а показано ' + dt.slice(0, 3).join(', '));
+  ok(rd.document.querySelectorAll('.chart path').length === 8, 'в диаграмме демо-отчёта 8 столбиков');
+  ok(!rd.localStorage.getItem('sasmo.progress'), 'демо-отчёт не должен трогать настоящий прогресс');
 
   // второй класс — свои формы и свой ключ
   const w3 = await assessPage('?g=2');

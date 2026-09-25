@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Отчёт «до и после»</title>
+<link rel="stylesheet" href="assets/quiz.css">
+<style>
+/* Отчёт печатается в PDF (Ctrl+P), поэтому всё, что нужно на бумаге, —
+   в самой странице, а кнопки и переключатели прячутся при печати. */
+.rep { --before: #eb6834; --after: #2a78d6; --ink: #1a1a1a; --soft: #52514e; --line: #e2e6ec; }
+.rep .panel { background: rgba(255,255,255,.94); border-radius: 14px; padding: 1rem 1.1rem;
+              margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+.rep h3 { font-size: 1rem; margin-bottom: .5rem; color: var(--ink); }
+.rep .muted { color: var(--soft); font-size: .88rem; }
+.rep .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .6rem; }
+.rep .tile { background: #f7f9fc; border: 1px solid var(--line); border-radius: 12px; padding: .7rem .8rem; }
+.rep .tile .v { font-size: 1.7rem; font-weight: 900; line-height: 1.1; color: var(--ink); }
+.rep .tile .k { font-size: .72rem; font-weight: 800; color: var(--soft); text-transform: uppercase; letter-spacing: .04em; }
+.rep .tile .d { font-size: .82rem; color: var(--soft); margin-top: .2rem; }
+.rep .up { color: #1c8552; }
+.rep .down { color: #c0392b; }
+.rep .legend { display: flex; gap: 1rem; font-size: .85rem; color: var(--soft); margin: .2rem 0 .4rem; flex-wrap: wrap; }
+.rep .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: .35rem; vertical-align: -1px; }
+.rep .chart { width: 100%; height: auto; display: block; }
+.rep .chart text { font-family: inherit; }
+.rep table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+.rep th, .rep td { text-align: left; padding: .35rem .45rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+.rep th { font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; color: var(--soft); }
+.rep td.c { text-align: center; white-space: nowrap; }
+.rep .yes { color: #1c8552; font-weight: 800; }
+.rep .no { color: #c0392b; font-weight: 800; }
+.rep .blank { color: var(--soft); }
+.rep .tag { display: inline-block; font-size: .72rem; font-weight: 800; border-radius: 6px; padding: .05rem .4rem; white-space: nowrap; }
+.rep .tag.grew { background: #e7f4ed; color: #1c8552; }
+.rep .tag.kept { background: #eef3f9; color: #2a5d8f; }
+.rep .tag.lost { background: #fbeaea; color: #c0392b; }
+.rep .tag.gap { background: #fbf2df; color: #9a6a00; }
+.rep .actions { text-align: center; margin: 1rem 0; }
+.rep .tip { position: fixed; pointer-events: none; background: #1a1a1a; color: #fff; font-size: .8rem;
+            padding: .3rem .5rem; border-radius: 6px; display: none; z-index: 50; }
+@media print {
+  body { background: #fff !important; }
+  .langsw, .demobar, .crumb, .rep .actions, .rep .tip, .noprint { display: none !important; }
+  .header { box-shadow: none; border: 0; }
+  .rep .panel { box-shadow: none; border: 1px solid var(--line); break-inside: avoid; }
+  @page { size: A4; margin: 12mm; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo brand"></div>
+  <div class="sub" id="sub"></div>
+  <h2 id="ttl" data-i18n="Отчёт «до и после»">Отчёт «до и после»</h2>
+  <div class="crumb"><a href="index.html">← весь план</a></div>
+</div>
+
+<div class="container rep" id="rep">
+  <div class="empty">…</div>
+</div>
+
+<script src="assets/i18n.js"></script>
+<script src="assets/plan.js"></script>
+<script src="assets/plan2.js"></script>
+<script src="assets/quiz.js"></script>
+<script src="assets/demo.js"></script>
+<script>
+/* ==========================================================================
+   Отчёт «до и после»
+
+   Сравнивает входной и итоговый тесты (assess.html, записи 'pre' и 'post'
+   в прогрессе класса). Формы A и B парные: задача №k в обеих — одна тема,
+   поэтому сравнение идёт по номерам задач. Темы собраны в четыре раздела
+   (AREAS ниже) — по разделам и строится диаграмма.
+
+   Время на задачу — потраченное время, делённое на число задач с ответом:
+   честнее, чем среднее по отметкам времени, которые ставятся при каждом
+   изменении ответа.
+
+   Ниже — активность в программе: пройденные дни, точность, пробные экзамены.
+   Это не доказательство, а контекст: прирост объясняет программа, только
+   если её действительно прошли.
+   ========================================================================== */
+(function () {
+  var t = I18N.t;
+  var params = SASMO.params();
+  var PLAN = window.PLANS[params.get('g') === '2' ? 2 : 3];
+  SASMO.usePlan(PLAN);
+  if (I18N.demoRequested && window.DEMO) DEMO.seed(PLAN);
+
+  var g = PLAN.grade;
+  var hub = 'index.html' + (g === 3 ? '' : '?g=' + g);
+  var assessHref = function (stage) { return 'assess.html?stage=' + stage + (g === 3 ? '' : '&g=' + g); };
+  var rep = document.getElementById('rep');
+
+  document.querySelector('.crumb').innerHTML = '<a href="' + hub + '">' + t('← весь план') + '</a>';
+  var who = window.SASMO_CLOUD && window.SASMO_CLOUD.studentName ? window.SASMO_CLOUD.studentName() : '';
+  document.getElementById('sub').textContent =
+    PLAN.label + (who ? ' · ' + who : '') + ' · ' + new Date().toLocaleDateString(I18N.lang === 'en' ? 'en-GB' : 'ru-RU');
+  document.title = t('Отчёт «до и после»') + ' — ' + BRAND.name;
+
+  /* Разделы: какая тема к какому относится. Тема берётся из формы замера. */
+  var AREAS = [
+    { id: 'num',   name: 'Числа и действия',
+      topics: ['Разряды', 'Порядок действий', 'Делимость', 'Быстрый счёт', 'Криптарифмы',
+               'Сложение', 'Вычитание', 'Умножение', 'Деление', 'Доли', 'Пропущенная цифра'] },
+    { id: 'word',  name: 'Текстовые задачи',
+      topics: ['Модельный метод', 'Обратный ход', 'Уравнивание', 'Возраст', 'Метод предположения',
+               'Весы', 'Кратное сравнение', 'Два действия', 'Деньги'] },
+    { id: 'logic', name: 'Закономерности и логика',
+      topics: ['Закономерности', 'Комбинаторика', 'Наихудший случай', 'Рукопожатия',
+               'Правило умножения', 'Наверняка'] },
+    { id: 'geo',   name: 'Геометрия и измерения',
+      topics: ['Периметр', 'Площадь', 'Время', 'Интервалы', 'Счёт фигур', 'Длина', 'Столбы', 'Распилы'] }
+  ];
+  function areaOf(topic) {
+    for (var i = 0; i < AREAS.length; i++) if (AREAS[i].topics.indexOf(topic) >= 0) return AREAS[i];
+    return AREAS[0];
+  }
+
+  var progress = SASMO.getProgress();
+  var pre = progress.pre && progress.pre.done ? progress.pre : null;
+  var post = progress.post && progress.post.done ? progress.post : null;
+
+  // Нужны обе формы класса: темы задач берём из той, что решалась
+  var forms = {};
+  SASMO.loadSet('data/assess-g' + g + 'a.js', 'ASSESSG' + g + 'A', function (a) {
+    forms.A = a;
+    SASMO.loadSet('data/assess-g' + g + 'b.js', 'ASSESSG' + g + 'B', function (b) {
+      forms.B = b;
+      render();
+    }, fail);
+  }, fail);
+
+  function fail() {
+    rep.innerHTML = '<div class="empty">' + t('Не удалось загрузить формы замера.') + '</div>';
+  }
+
+  function formFor(rec) {
+    return rec && rec.meta && forms[rec.meta.form] ? forms[rec.meta.form] : forms.A;
+  }
+
+  /* Сколько задач с ответом и сколько секунд на одну. */
+  function timing(rec) {
+    if (!rec) return null;
+    var answered = 0;
+    Object.keys(rec.answers || {}).forEach(function (k) {
+      var a = rec.answers[k];
+      if (a && a.g !== null && a.g !== undefined && String(a.g).trim() !== '') answered++;
+    });
+    if (typeof rec.spent !== 'number' || !answered) return { answered: answered, per: null };
+    return { answered: answered, per: Math.round(rec.spent / answered) };
+  }
+
+  function okAt(rec, i) {
+    var a = rec && rec.answers && rec.answers[i];
+    if (!a) return null;
+    if (a.g === null || a.g === undefined || String(a.g).trim() === '') return 'blank';
+    return a.ok ? 'yes' : 'no';
+  }
+
+  function sign(n) { return (n > 0 ? '+' : n < 0 ? '−' : '±') + Math.abs(n); }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  function render() {
+    var html = '';
+
+    if (!pre && !post) {
+      rep.innerHTML =
+        '<div class="panel"><h3>' + t('Замера ещё не было') + '</h3>' +
+        '<p class="muted">' + t('Отчёт сравнивает входной и итоговый тесты. Начните с входного: 20 задач, 40 минут.') + '</p>' +
+        '<div class="actions"><a class="btn" href="' + assessHref('pre') + '">' + t('▶ Входной тест') + '</a>' +
+        ' <a class="btn sec" href="report.html?demo=1' + (g === 3 ? '' : '&g=' + g) + '">' +
+        t('Показать пример отчёта') + '</a></div></div>';
+      return;
+    }
+
+    var n = (formFor(pre || post).questions || []).length;
+    var tp = timing(pre), tq = timing(post);
+
+    /* ---- сводка ---- */
+    function tile(k, v, d) {
+      return '<div class="tile"><div class="k">' + k + '</div><div class="v">' + v + '</div>' +
+             (d ? '<div class="d">' + d + '</div>' : '') + '</div>';
+    }
+    var growth = pre && post ? post.score - pre.score : null;
+    html += '<div class="panel"><h3>' + t('Итог') + '</h3><div class="tiles">' +
+      tile(t('Входной тест'), pre ? pre.score + ' / ' + n : '—',
+           pre ? t('форма {f}', { f: pre.meta && pre.meta.form || '?' }) + (pre.date ? ' · ' + pre.date : '') : t('не пройден')) +
+      tile(t('Итоговый тест'), post ? post.score + ' / ' + n : '—',
+           post ? t('форма {f}', { f: post.meta && post.meta.form || '?' }) + (post.date ? ' · ' + post.date : '') : t('ещё впереди')) +
+      tile(t('Прирост'), growth === null ? '—' :
+           '<span class="' + (growth > 0 ? 'up' : growth < 0 ? 'down' : '') + '">' + sign(growth) + '</span>',
+           growth === null ? '' : t('{a}% → {b}% верных', { a: Math.round(pre.score / n * 100), b: Math.round(post.score / n * 100) })) +
+      tile(t('Время на задачу'),
+           (tp && tp.per !== null ? tp.per : '—') + ' → ' + (tq && tq.per !== null ? tq.per : '—') + ' ' + t('с'),
+           t('в среднем на задачу с ответом')) +
+      '</div>';
+    if (!post) {
+      html += '<p class="muted" style="margin-top:.6rem">' +
+        t('Итоговый тест решают в конце программы (день 27–28). Ему достанется другая форма той же сложности.') +
+        ' <a href="' + assessHref('post') + '">' + t('Перейти к итоговому') + '</a></p>';
+    }
+    html += '</div>';
+
+    /* ---- по разделам: диаграмма ---- */
+    var rows = AREAS.map(function (a) { return { area: a, n: 0, pre: 0, post: 0 }; });
+    var byId = {};
+    rows.forEach(function (r) { byId[r.area.id] = r; });
+    var items = [];
+    var F = formFor(pre || post);
+    for (var i = 0; i < n; i++) {
+      var q = F.questions[i];
+      var r = byId[areaOf(q.topic).id];
+      var a = okAt(pre, i), b = okAt(post, i);
+      r.n++;
+      if (a === 'yes') r.pre++;
+      if (b === 'yes') r.post++;
+      items.push({ i: i, q: q, a: a, b: b });
+    }
+    rows = rows.filter(function (r) { return r.n > 0; });
+
+    html += '<div class="panel"><h3>' + t('По разделам: доля верных ответов') + '</h3>' +
+      '<div class="legend"><span><i style="background:var(--before)"></i>' + t('до') + '</span>' +
+      (post ? '<span><i style="background:var(--after)"></i>' + t('после') + '</span>' : '') + '</div>' +
+      chart(rows, !!pre, !!post) +
+      '<table style="margin-top:.5rem"><tr><th>' + t('Раздел') + '</th><th class="c">' + t('задач') +
+      '</th><th class="c">' + t('до') + '</th><th class="c">' + t('после') + '</th></tr>' +
+      rows.map(function (r) {
+        return '<tr><td>' + t(r.area.name) + '</td><td class="c">' + r.n + '</td>' +
+               '<td class="c">' + (pre ? r.pre + ' / ' + r.n : '—') + '</td>' +
+               '<td class="c">' + (post ? r.post + ' / ' + r.n : '—') + '</td></tr>';
+      }).join('') + '</table></div>';
+
+    /* ---- по задачам ---- */
+    function mark(x) {
+      if (x === null) return '<span class="blank">—</span>';
+      if (x === 'yes') return '<span class="yes">✓</span>';
+      if (x === 'no') return '<span class="no">✗</span>';
+      return '<span class="blank">' + t('пусто') + '</span>';
+    }
+    function verdict(a, b) {
+      if (!pre || !post) return '';
+      if (a !== 'yes' && b === 'yes') return '<span class="tag grew">' + t('научился') + '</span>';
+      if (a === 'yes' && b === 'yes') return '<span class="tag kept">' + t('умел и умеет') + '</span>';
+      if (a === 'yes' && b !== 'yes') return '<span class="tag lost">' + t('просело') + '</span>';
+      return '<span class="tag gap">' + t('пока не выходит') + '</span>';
+    }
+    var gaps = items.filter(function (x) { return post ? x.b !== 'yes' : x.a !== 'yes'; });
+    html += '<div class="panel"><h3>' + t('По темам') + '</h3>' +
+      '<p class="muted" style="margin-bottom:.4rem">' +
+      t('Задача №k во входном и итоговом тесте — одна тема и одна сложность, числа разные.') + '</p>' +
+      '<table><tr><th>№</th><th>' + t('Тема') + '</th><th class="c">' + t('до') + '</th><th class="c">' + t('после') +
+      '</th><th>' + t('Итог') + '</th></tr>' +
+      items.map(function (x) {
+        return '<tr><td>' + (x.i + 1) + '</td><td>' + esc(I18N.pick(x.q.en && I18N.lang === 'en' ? x.q.en : x.q, 'topic')) +
+               '</td><td class="c">' + mark(x.a) + '</td><td class="c">' + mark(x.b) + '</td><td>' + verdict(x.a, x.b) + '</td></tr>';
+      }).join('') + '</table>';
+    if (gaps.length) {
+      html += '<p class="muted" style="margin-top:.5rem"><b>' + t('Над чем работать дальше:') + '</b> ' +
+        gaps.map(function (x) { return esc(I18N.lang === 'en' && x.q.en ? x.q.en.topic : x.q.topic); })
+            .filter(function (v, k, arr) { return arr.indexOf(v) === k; }).join(', ') + '.</p>';
+    }
+    html += '</div>';
+
+    /* ---- программа: контекст ---- */
+    var done = 0, total = 0, ok = 0, tot = 0, exams = [];
+    PLAN.days.forEach(function (d) {
+      if (d.kind === 'review') return;
+      total++;
+      var rec = progress[d.id];
+      if (!rec || !rec.done) return;
+      done++;
+      if (d.kind === 'exam') exams.push({ d: d, s: rec.score });
+      else { ok += rec.ok || 0; tot += rec.total || 0; }
+    });
+    html += '<div class="panel"><h3>' + t('Программа') + '</h3><div class="tiles">' +
+      tile(t('дней пройдено'), done + ' / ' + total, '') +
+      tile(t('точность на занятиях'), tot ? Math.round(ok / tot * 100) + '%' : '—', tot ? t('{a} из {n} задач', { a: ok, n: tot }) : '') +
+      tile(t('пробные экзамены'), exams.length ? exams.map(function (e) { return e.s; }).join(' → ') : '—',
+           exams.length ? t('из 85 баллов') : t('ещё не было')) +
+      tile(t('в журнале ошибок'), SASMO.getErrors().length, t('задач ждут повторения')) +
+      '</div></div>';
+
+    /* ---- как читать ---- */
+    html += '<div class="panel"><h3>' + t('Как читать этот отчёт') + '</h3><ul class="muted" style="padding-left:1.1rem">' +
+      '<li>' + t('Формы A и B составлены парами одинаковой сложности, но на большой выборке не выверены: разница в 1–2 балла может быть случайной.') + '</li>' +
+      '<li>' + t('Прирост за месяц складывается из программы, школы и взросления. Отделить их помогает контрольная группа, которая пишет те же тесты без программы.') + '</li>' +
+      '<li>' + t('«Пусто» — задача без ответа. За ошибку здесь не снимают, поэтому пустые ответы — сами по себе повод поговорить о тактике.') + '</li>' +
+      '</ul></div>';
+
+    html += '<div class="actions"><button class="btn" id="printBtn">' + t('🖨 Печать или PDF') + '</button> ' +
+            '<a class="btn sec" href="' + hub + '">' + t('← К плану') + '</a></div>' +
+            '<div class="tip" id="tip"></div>';
+
+    rep.innerHTML = html;
+    document.getElementById('printBtn').addEventListener('click', function () { window.print(); });
+    bindTips();
+  }
+
+  /* Сгруппированные столбцы «до / после» по разделам. Одна ось (доля, %),
+     значения подписаны у столбцов, наведение показывает «3 из 5». */
+  function chart(rows, hasPre, hasPost) {
+    // ширина под экран: на телефоне подписи не мельчают
+    var W = Math.max(340, Math.min(640, (rep.clientWidth || 640) - 40)), H = 220, L = 36, B = 44, T = 14, R = 8;
+    var ph = H - T - B, gw = (W - L - R) / rows.length;
+    var bw = Math.min(46, gw / 3.2), gap = 2;
+    var y = function (p) { return T + ph - ph * p; };
+    var s = '<svg class="chart" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' +
+            esc(t('По разделам: доля верных ответов')) + '">';
+    [0, .5, 1].forEach(function (p) {
+      s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(p) + '" y2="' + y(p) + '" stroke="#e2e6ec"/>' +
+           '<text x="' + (L - 6) + '" y="' + (y(p) + 4) + '" font-size="11" fill="#52514e" text-anchor="end">' + (p * 100) + '%</text>';
+    });
+    function bar(x, val, n, color, label) {
+      var p = n ? val / n : 0, h = Math.max(ph * p, 0), yy = y(p);
+      // столбик со скруглённым верхом, прижатый к оси
+      var r = Math.min(4, h, bw / 2);
+      var d = h <= 0 ? '' :
+        'M' + x + ',' + (yy + h) + 'V' + (yy + r) + 'Q' + x + ',' + yy + ' ' + (x + r) + ',' + yy +
+        'H' + (x + bw - r) + 'Q' + (x + bw) + ',' + yy + ' ' + (x + bw) + ',' + (yy + r) + 'V' + (yy + h) + 'Z';
+      return '<g class="hit" data-tip="' + esc(label + ': ' + val + ' / ' + n) + '">' +
+             '<rect x="' + (x - 3) + '" y="' + T + '" width="' + (bw + 6) + '" height="' + ph + '" fill="transparent"/>' +
+             (d ? '<path d="' + d + '" fill="' + color + '"/>' : '') +
+             '<text x="' + (x + bw / 2) + '" y="' + (yy - 4) + '" font-size="11" fill="#1a1a1a" text-anchor="middle">' +
+               Math.round(p * 100) + '%</text></g>';
+    }
+    rows.forEach(function (r, k) {
+      var cx = L + gw * k + gw / 2;
+      var x1 = hasPost ? cx - bw - gap / 2 : cx - bw / 2;
+      var name = t(r.area.name);
+      if (hasPre) s += bar(x1, r.pre, r.n, 'var(--before)', name + ' · ' + t('до'));
+      if (hasPost) s += bar(hasPre ? cx + gap / 2 : cx - bw / 2, r.post, r.n, 'var(--after)', name + ' · ' + t('после'));
+      var words = name.split(' ');
+      var mid = Math.ceil(words.length / 2);
+      s += '<text x="' + cx + '" y="' + (H - B + 16) + '" font-size="11.5" fill="#52514e" text-anchor="middle">' +
+             esc(words.slice(0, mid).join(' ')) + '</text>' +
+           '<text x="' + cx + '" y="' + (H - B + 30) + '" font-size="11.5" fill="#52514e" text-anchor="middle">' +
+             esc(words.slice(mid).join(' ')) + '</text>';
+    });
+    s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(0) + '" y2="' + y(0) + '" stroke="#9aa3ad"/>';
+    return s + '</svg>';
+  }
+
+  function bindTips() {
+    var tip = document.getElementById('tip');
+    [].forEach.call(document.querySelectorAll('.chart .hit'), function (g) {
+      g.addEventListener('mousemove', function (ev) {
+        tip.textContent = g.getAttribute('data-tip');
+        tip.style.display = 'block';
+        tip.style.left = (ev.clientX + 12) + 'px';
+        tip.style.top = (ev.clientY + 12) + 'px';
+      });
+      g.addEventListener('mouseleave', function () { tip.style.display = 'none'; });
+    });
+  }
+})();
+</script>
+</body>
+</html>

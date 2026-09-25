@@ -50,6 +50,23 @@ window.DEMO = (function () {
     progress.exam1 = { answers: answers(19, 25), ok: 19, no: 6, total: 25, date: ago(1), done: true, score: 63 };
     progress.day22 = { answers: answers(2, 3), ok: 2, no: 1, total: 10, date: ago(0) };
 
+    /* Замер «до и после»: входной — форма A перед программой, итоговый —
+       форма B. Номера неверных задач выбраны так, чтобы отчёт показал и
+       прирост, и одну просевшую тему, и «пока не выходит». */
+    function assess(stage, form, wrong, blank, spent, daysAgo) {
+      var a = {}, ok = 0;
+      for (var i = 0; i < 20; i++) {
+        var isBlank = blank.indexOf(i) >= 0, bad = wrong.indexOf(i) >= 0 || isBlank;
+        a[i] = { g: isBlank ? null : '·', ok: !bad, t: Math.round(spent / 20 * (i + 1)) };
+        if (!bad) ok++;
+      }
+      return { answers: a, ok: ok, no: 20 - ok, total: 20, score: ok, max: 20, spent: spent,
+               date: ago(daysAgo), done: true, ts: Date.now() - daysAgo * 864e5,
+               meta: { kind: 'assess', stage: stage, form: form, grade: plan.grade, n: 20 } };
+    }
+    progress.pre = assess('pre', 'A', [2, 4, 5, 9, 11, 13, 15, 16], [17], 2280, DAYS.length + 2);
+    progress.post = assess('post', 'B', [4, 13, 16, 12], [], 1740, 0);
+
     var now = Date.now();
     var errors = [
       { key: 'day10#2', setId: 'day10', idx: 2, ts: now - 9 * 864e5, type: 'mcq', topic: 'Криптарифмы',

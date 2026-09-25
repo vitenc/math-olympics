@@ -1020,6 +1020,61 @@ window.I18N = (function () {
     'Отчёт': 'Report',
     'прирост по темам, баллам и времени; печать в PDF': 'growth by topic, score and time; print to PDF',
 
+    /* отчёт «до и после» */
+    'Отчёт «до и после»': 'Before-and-after report',
+    'Не удалось загрузить формы замера.': 'Could not load the assessment forms.',
+    'Замера ещё не было': 'No assessment yet',
+    'Отчёт сравнивает входной и итоговый тесты. Начните с входного: 20 задач, 40 минут.':
+      'The report compares the starting and final tests. Begin with the starting test: 20 problems, 40 minutes.',
+    '▶ Входной тест': '▶ Starting test',
+    'Показать пример отчёта': 'Show a sample report',
+    'Итог': 'Summary',
+    'не пройден': 'not taken',
+    'ещё впереди': 'still ahead',
+    'Прирост': 'Growth',
+    '{a}% → {b}% верных': '{a}% → {b}% correct',
+    'Время на задачу': 'Time per problem',
+    'с': 's',
+    'в среднем на задачу с ответом': 'average per answered problem',
+    'Итоговый тест решают в конце программы (день 27–28). Ему достанется другая форма той же сложности.':
+      'The final test is taken at the end of the programme (day 27–28). It uses the other form, of the same difficulty.',
+    'Перейти к итоговому': 'Go to the final test',
+    'По разделам: доля верных ответов': 'By area: share of correct answers',
+    'до': 'before',
+    'после': 'after',
+    'Раздел': 'Area',
+    'задач': 'problems',
+    'Числа и действия': 'Numbers and operations',
+    'Текстовые задачи': 'Word problems',
+    'Закономерности и логика': 'Patterns and logic',
+    'Геометрия и измерения': 'Geometry and measurement',
+    'пусто': 'blank',
+    'научился': 'learned',
+    'умел и умеет': 'still solid',
+    'просело': 'slipped',
+    'пока не выходит': 'not yet',
+    'По темам': 'By topic',
+    'Задача №k во входном и итоговом тесте — одна тема и одна сложность, числа разные.':
+      'Problem k in the starting and final tests has the same topic and difficulty, with different numbers.',
+    'Тема': 'Topic',
+    'Над чем работать дальше:': 'What to work on next:',
+    'Программа': 'Programme',
+    'точность на занятиях': 'accuracy in lessons',
+    '{a} из {n} задач': '{a} of {n} problems',
+    'пробные экзамены': 'mock exams',
+    'из 85 баллов': 'out of 85 points',
+    'ещё не было': 'none yet',
+    'в журнале ошибок': 'in the error journal',
+    'задач ждут повторения': 'problems waiting for review',
+    'Как читать этот отчёт': 'How to read this report',
+    'Формы A и B составлены парами одинаковой сложности, но на большой выборке не выверены: разница в 1–2 балла может быть случайной.':
+      'Forms A and B are built as pairs of equal difficulty but have not been calibrated on a large sample: a difference of 1–2 points may be chance.',
+    'Прирост за месяц складывается из программы, школы и взросления. Отделить их помогает контрольная группа, которая пишет те же тесты без программы.':
+      'A month of growth comes from the programme, from school and from growing up. A control group taking the same tests without the programme separates them.',
+    '«Пусто» — задача без ответа. За ошибку здесь не снимают, поэтому пустые ответы — сами по себе повод поговорить о тактике.':
+      '“Blank” means no answer was given. Wrong answers lose nothing here, so blanks are themselves worth a conversation about tactics.',
+    '🖨 Печать или PDF': '🖨 Print or PDF',
+
     /* демо */
     'Демо-режим: показан образец прогресса, настоящие результаты не затронуты.':
       'Demo mode: sample progress is shown, real results are untouched.',
@@ -6063,6 +6118,23 @@ window.DEMO = (function () {
     });
     progress.exam1 = { answers: answers(19, 25), ok: 19, no: 6, total: 25, date: ago(1), done: true, score: 63 };
     progress.day22 = { answers: answers(2, 3), ok: 2, no: 1, total: 10, date: ago(0) };
+
+    /* Замер «до и после»: входной — форма A перед программой, итоговый —
+       форма B. Номера неверных задач выбраны так, чтобы отчёт показал и
+       прирост, и одну просевшую тему, и «пока не выходит». */
+    function assess(stage, form, wrong, blank, spent, daysAgo) {
+      var a = {}, ok = 0;
+      for (var i = 0; i < 20; i++) {
+        var isBlank = blank.indexOf(i) >= 0, bad = wrong.indexOf(i) >= 0 || isBlank;
+        a[i] = { g: isBlank ? null : '·', ok: !bad, t: Math.round(spent / 20 * (i + 1)) };
+        if (!bad) ok++;
+      }
+      return { answers: a, ok: ok, no: 20 - ok, total: 20, score: ok, max: 20, spent: spent,
+               date: ago(daysAgo), done: true, ts: Date.now() - daysAgo * 864e5,
+               meta: { kind: 'assess', stage: stage, form: form, grade: plan.grade, n: 20 } };
+    }
+    progress.pre = assess('pre', 'A', [2, 4, 5, 9, 11, 13, 15, 16], [17], 2280, DAYS.length + 2);
+    progress.post = assess('post', 'B', [4, 13, 16, 12], [], 1740, 0);
 
     var now = Date.now();
     var errors = [
