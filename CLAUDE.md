@@ -39,6 +39,8 @@ node build/check.js           # после правки задач: структ
 node build/build.js           # пересобрать sasmo-month.html и sasmo-month-2.html
 npm install --no-save jsdom   # один раз
 node build/uitest.js          # после правки движка или вёрстки
+node build/cloudtest.js       # после правки assets/cloud.js, account/teacher/report
+sh tools/test_rls.sh          # после правки supabase/schema.sql (нужен PostgreSQL)
 pip install -r tools/requirements.txt
 python tools/verify.py        # пересчитать ответы через sympy
 ```
@@ -55,6 +57,11 @@ python tools/verify.py        # пересчитать ответы через s
   прошлые олимпиады; каталог работ — `window.PAPERS` в `assets/paper.js`,
   страница — `paper.html?p=<id>`.
 - `assets/quiz.js` — движок; `assets/theory.js` — теория по темам.
+- `assess.html` + `data/assess-g{2,3}{a,b}.js` — замер «до и после» (формы
+  A/B парные: править задачу — править и её пару); `report.html` — отчёт.
+- `assets/cloud.js` — облако (Supabase), выключено, пока пуст
+  `assets/cloud-config.js`; `account.html`, `teacher.html`, `supabase/`.
+- `landing.html`, `onepager.html` — для партнёров, на английском.
 - `src/` — исходные буклеты олимпиад (PDF/DOCX).
 - `android/` — приложение Math Gate (`com.mathgate`).
 
@@ -80,6 +87,13 @@ python tools/verify.py        # пересчитать ответы через s
   У FMO фон страниц — картинки на всю страницу; перед вырезкой удалять их
   (`page.delete_image`), иначе лезут линейки.
 - `img/q1…q25.png` в корне используются `assets/quiz.js` — не удалять.
+- **Ключи хранения — через движок.** Приставку ключей (`demo.`, `st.<id>.`)
+  ставит `SASMO.usePlan`; прямое чтение `localStorage` в странице её
+  пропустит. Запись — через `SASMO.saveProgress`/`saveErrors`, иначе облако
+  не узнает об изменении.
+- **i18n.** Элемент с `data-i18n`, в который страница сама пишет текст,
+  переводится, только пока в нём исходная строка. Длинные тексты — блоками
+  в `BLOCKS` (`assets/i18n.js`).
 
 ## Android
 

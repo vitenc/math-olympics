@@ -18,7 +18,8 @@ window.MULT = (function () {
     return v ? String(x).replace(/\{(\w+)\}/g, function (m, k) { return k in v ? v[k] : m; }) : x;
   };
 
-  var KEY = 'sasmo.g2.mult';
+  // У вошедшего ученика своя статистика — приставка его профиля (assets/cloud.js)
+  var KEY = (window.SASMO_CLOUD ? window.SASMO_CLOUD.prefix() : '') + 'sasmo.g2.mult';
 
   var TABLES = [2, 3, 4, 5, 6, 7, 8, 9, 10];
   var LIMITS = [
@@ -65,7 +66,10 @@ window.MULT = (function () {
   }
 
   function save(st) {
-    try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) { /* пусто */ }
+    try {
+      localStorage.setItem(KEY, JSON.stringify(st));
+      if (window.SASMO_CLOUD) window.SASMO_CLOUD.touched(KEY);
+    } catch (e) { /* пусто */ }
   }
 
   /* ---------- примеры ---------- */

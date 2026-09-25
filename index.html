@@ -77,6 +77,8 @@
 </div>
 
 <script src="assets/i18n.js"></script>
+<script src="assets/cloud-config.js"></script>
+<script src="assets/cloud.js"></script>
 <script src="assets/plan.js"></script>
 <script src="assets/plan2.js"></script>
 <script src="assets/quiz.js"></script>
@@ -91,6 +93,9 @@
   var asked = SASMO.params().get('g');
   var remembered = null;
   try { remembered = localStorage.getItem('sasmo.grade'); } catch (e) {}
+  // Выбран ученик в облаке — его класс, если ссылка не просит другой
+  var active = window.SASMO_CLOUD && SASMO_CLOUD.student();
+  if (!asked && active) remembered = String(active.grade);
   var grade = (asked || remembered) === '2' ? 2 : 3;
   try { localStorage.setItem('sasmo.grade', String(grade)); } catch (e) {}
 

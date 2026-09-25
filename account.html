@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Аккаунт</title>
+<link rel="stylesheet" href="assets/quiz.css">
+</head>
+<body>
+
+<div class="header">
+  <div class="logo brand"></div>
+  <div class="sub" data-i18n="для взрослых">для взрослых</div>
+  <h2 data-i18n="Аккаунт и ученики">Аккаунт и ученики</h2>
+  <div class="crumb"><a href="index.html">← весь план</a></div>
+</div>
+
+<div class="container" id="app">
+  <div class="empty">…</div>
+</div>
+
+<script src="assets/i18n.js"></script>
+<script src="assets/cloud-config.js"></script>
+<script src="assets/cloud.js"></script>
+<script src="assets/plan.js"></script>
+<script src="assets/plan2.js"></script>
+<script src="assets/quiz.js"></script>
+<script>
+/* ==========================================================================
+   Аккаунт взрослого и профили учеников
+
+   Вход — по коду из письма, без пароля. Потом взрослый (родитель или
+   учитель) один раз принимает условия и заводит профили детей: псевдоним,
+   класс, отметка о согласии. Один профиль выбирается «решает сейчас» — с
+   этого момента прогресс на устройстве пишется в его профиль и уходит в
+   облако. Родитель записывает ребёнка в класс по коду от учителя.
+
+   Всё про данные — в одном месте на странице: что хранится, кто видит,
+   как скачать и как удалить. Без облака (cloud-config.js пустой) страница
+   просто объясняет, что облако не настроено.
+   ========================================================================== */
+(function () {
+  var t = I18N.t;
+  var C = window.SASMO_CLOUD;
+  var app = document.getElementById('app');
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+  function msg(el, text, ok) { el.className = 'msg ' + (ok ? 'ok' : 'err'); el.textContent = text; }
+  function human(e) {
+    if (!e) return t('Что-то пошло не так.');
+    if (e.status === 0 || /fetch|network/i.test(e.message)) return t('Нет связи с сервером. Проверь интернет.');
+    if (/expired|invalid/i.test(e.message)) return t('Код не подошёл или устарел. Запроси новый.');
+    if (/no such class/i.test(e.message)) return t('Класса с таким кодом нет. Проверь код у учителя.');
+    return e.message;
+  }
+
+  var PRIVACY =
+    '<div class="note"><h3>' + t('Что хранится и кто это видит') + '</h3><ul>' +
+      '<li>' + t('О взрослом: адрес почты (для входа), роль и, если хотите, имя.') + '</li>' +
+      '<li>' + t('О ребёнке: только псевдоним, класс и ответы в тренажёре — какие задачи решены, за сколько секунд, какие ошибки. Ни имени, ни фамилии, ни даты рождения, ни почты ребёнка.') + '</li>' +
+      '<li>' + t('Видите вы. Учитель видит прогресс ребёнка, только если вы сами записали его в класс по коду.') + '</li>' +
+      '<li>' + t('Данные ребёнка можно скачать одним файлом и удалить целиком — кнопки рядом с профилем.') + '</li>' +
+      '<li>' + t('Без входа тренажёр работает как раньше: всё хранится только в этом браузере.') + '</li>' +
+    '</ul></div>';
+
+  if (!C || !C.enabled()) {
+    app.innerHTML =
+      '<div class="note warm"><h3>' + t('Облако не настроено') + '</h3><p>' +
+      t('Тренажёр работает без аккаунтов: прогресс хранится в этом браузере. Чтобы включить вход и синхронизацию, администратор сайта заполняет assets/cloud-config.js (см. supabase/README.md).') +
+      '</p></div>' + PRIVACY;
+    return;
+  }
+
+  if (!C.session()) return viewSignIn();
+  C.profile().then(function (p) {
+    if (!p || !p.consent_at) viewConsent(p);
+    else viewMain(p);
+  }, function (e) {
+    if (e.status === 401) return viewSignIn();
+    app.innerHTML = '<div class="empty">' + esc(human(e)) + '</div>';
+  });
+
+  /* ---------------------------------------------------------------- вход --- */
+
+  function viewSignIn() {
+    app.innerHTML =
+      '<div class="note"><h3>' + t('Вход для взрослых') + '</h3>' +
+      '<p>' + t('Пароль не нужен: на почту придёт шестизначный код. Аккаунт создаётся при первом входе.') + '</p>' +
+      '<div class="form" style="margin-top:.6rem">' +
+        '<label>' + t('Почта') + '<input type="email" id="email" autocomplete="email" placeholder="name@example.com"></label>' +
+        '<button class="btn sec" id="send">' + t('Получить код') + '</button>' +
+        '<label id="codeRow" style="display:none">' + t('Код из письма') +
+          '<input type="text" id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="10"></label>' +
+        '<button class="btn" id="enter" style="display:none">' + t('Войти') + '</button>' +
+        '<div id="m"></div>' +
+      '</div></div>' + PRIVACY;
+    var email = document.getElementById('email');
+    var m = document.getElementById('m');
+    document.getElementById('send').addEventListener('click', function () {
+      if (!/^\S+@\S+\.\S+$/.test(email.value.trim())) { msg(m, t('Проверь адрес почты.')); return; }
+      var btn = this;
+      btn.disabled = true;
+      C.sendCode(email.value).then(function () {
+        msg(m, t('Код отправлен на {e}. Письмо может идти пару минут; проверь и «Спам».', { e: email.value.trim() }), true);
+        document.getElementById('codeRow').style.display = '';
+        document.getElementById('enter').style.display = '';
+        document.getElementById('code').focus();
+      }, function (e) { msg(m, human(e)); }).then(function () { btn.disabled = false; });
+    });
+    document.getElementById('enter').addEventListener('click', function () {
+      var code = document.getElementById('code').value;
+      if (!/^\s*\d{6,10}\s*$/.test(code)) { msg(m, t('Код — это цифры из письма.')); return; }
+      C.verify(email.value, code).then(function () { SASMO.reload(); }, function (e) { msg(m, human(e)); });
+    });
+  }
+
+  /* -------------------------------------------------------- согласие --- */
+
+  function viewConsent(p) {
+    app.innerHTML =
+      '<div class="note warm"><h3>' + t('Один раз перед началом') + '</h3>' +
+      '<div class="form">' +
+        '<label>' + t('Кто вы') + '<select id="role">' +
+          '<option value="parent">' + t('Родитель или опекун') + '</option>' +
+          '<option value="teacher">' + t('Учитель или руководитель кружка') + '</option>' +
+        '</select></label>' +
+        '<label>' + t('Как к вам обращаться (необязательно)') +
+          '<input type="text" id="name" maxlength="60" value="' + esc(p && p.display_name) + '"></label>' +
+        '<label class="check"><input type="checkbox" id="agree"> <span>' +
+          t('Я прочитал(а), что хранится о детях и кто это видит (ниже), и согласен(на) на такую обработку данных. Согласие можно отозвать, удалив профили и аккаунт.') +
+        '</span></label>' +
+        '<button class="btn" id="save">' + t('Продолжить') + '</button><div id="m"></div>' +
+      '</div></div>' + PRIVACY;
+    if (p && p.role) document.getElementById('role').value = p.role;
+    document.getElementById('save').addEventListener('click', function () {
+      var m = document.getElementById('m');
+      if (!document.getElementById('agree').checked) { msg(m, t('Без согласия облако включить нельзя. Тренажёр при этом работает и без входа.')); return; }
+      C.saveProfile({ role: document.getElementById('role').value, display_name: document.getElementById('name').value.trim() })
+        .then(function () { SASMO.reload(); }, function (e) { msg(m, human(e)); });
+    });
+  }
+
+  /* ---------------------------------------------------------- главная --- */
+
+  function viewMain(p) {
+    var teacher = p.role === 'teacher';
+    var active = C.student();
+    app.innerHTML =
+      '<div class="resume"><div>' + t('Вы вошли как <b>{e}</b> · {r}', {
+          e: esc(C.me().email), r: teacher ? t('учитель') : t('родитель') }) + '</div>' +
+        '<button class="mini" id="out">' + t('Выйти') + '</button></div>' +
+      (teacher ? '<div class="tools"><a class="btn sec" href="teacher.html">' + t('🏫 Панель учителя') + '</a></div>' : '') +
+      '<div class="week"><h3>' + t('Ученики') + '<small>' +
+        t('выберите, кто сейчас решает на этом устройстве') + '</small></h3><div id="kids"><div class="empty">…</div></div></div>' +
+      '<div class="note"><h3>' + t('Добавить ученика') + '</h3><div class="form">' +
+        '<label>' + t('Псевдоним') + '<input type="text" id="nick" maxlength="40" placeholder="' + t('например, Сокол') + '"></label>' +
+        '<p class="hint-line" style="margin:0;text-align:left">' + t('Не настоящее имя: псевдонима достаточно, чтобы отличать детей.') + '</p>' +
+        '<label>' + t('Класс') + '<select id="grade"><option value="3">' + t('3 класс') + '</option><option value="2">' + t('2 класс') + '</option></select></label>' +
+        '<label class="check"><input type="checkbox" id="kidConsent"> <span>' +
+          (teacher ? t('Согласие родителей этого ученика собрано школой (письменно или в школьной системе).')
+                   : t('Я родитель или опекун этого ребёнка и согласен(на) на хранение его прогресса.')) + '</span></label>' +
+        '<button class="btn" id="add">' + t('Добавить') + '</button><div id="m"></div>' +
+      '</div></div>' + PRIVACY;
+
+    document.getElementById('out').addEventListener('click', function () { C.signOut(); SASMO.reload(); });
+    document.getElementById('add').addEventListener('click', function () {
+      var m = document.getElementById('m');
+      var nick = document.getElementById('nick').value.trim();
+      if (!nick) { msg(m, t('Впиши псевдоним.')); return; }
+      if (!document.getElementById('kidConsent').checked) { msg(m, t('Отметь согласие — без него профиль не создаётся.')); return; }
+      C.createStudent({ nickname: nick, grade: +document.getElementById('grade').value, consent_by: teacher ? 'school' : 'parent' })
+        .then(function () { SASMO.reload(); }, function (e) { msg(m, human(e)); });
+    });
+
+    C.listStudents().then(function (kids) {
+      var box = document.getElementById('kids');
+      if (!kids.length) {
+        box.innerHTML = '<div class="empty">' + t('Пока никого. Добавьте ученика ниже.') + '</div>';
+        return;
+      }
+      box.innerHTML = kids.map(function (k) {
+        var on = active && active.id === k.id;
+        return '<div class="kid' + (on ? ' on' : '') + '" data-id="' + k.id + '">' +
+          '<div class="who">' + esc(k.nickname) + '<small>' + t('{g} класс', { g: k.grade }) +
+            (on ? ' · ' + t('решает сейчас') : '') + '<span class="cls"></span></small></div>' +
+          '<div class="acts">' +
+            (on ? '<a class="mini" href="index.html?g=' + k.grade + '">' + t('К плану') + '</a>'
+                : '<button class="mini" data-act="use">' + t('Решает сейчас') + '</button>') +
+            '<button class="mini" data-act="join">' + t('В класс по коду') + '</button>' +
+            '<button class="mini ghost" data-act="export">' + t('Скачать данные') + '</button>' +
+            '<button class="mini ghost" data-act="del" data-armed-text="' + t('Удалить навсегда?') + '">' + t('Удалить') + '</button>' +
+          '</div><div class="msg" style="width:100%"></div></div>';
+      }).join('') + importOffer(active, kids);
+
+      kids.forEach(function (k) {
+        C.studentClasses(k.id).then(function (cls) {
+          if (!cls || !cls.length) return;
+          var el = box.querySelector('[data-id="' + k.id + '"] .cls');
+          if (el) el.textContent = ' · ' + t('класс: {c}', { c: cls.map(function (c) { return c.name; }).join(', ') });
+        }, function () {});
+      });
+
+      box.addEventListener('click', function (ev) {
+        var b = ev.target.closest('[data-act]');
+        if (!b) return;
+        var row = b.closest('.kid');
+        var kid = row ? kids.filter(function (k) { return k.id === row.getAttribute('data-id'); })[0] : null;
+        var m = row ? row.querySelector('.msg') : null;
+        var act = b.getAttribute('data-act');
+        if (act === 'use') {
+          C.useStudent(kid);
+          SASMO.reload();
+        } else if (act === 'join') {
+          var code = window.prompt(t('Код класса от учителя (6 знаков):'));
+          if (!code) return;
+          C.joinClass(code, kid.id).then(function (name) {
+            msg(m, t('Записан в класс «{c}».', { c: name }), true);
+          }, function (e) { msg(m, human(e)); });
+        } else if (act === 'export') {
+          C.exportStudent(kid).then(function (data) {
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+            a.download = 'olympiad-sprint-' + kid.nickname.replace(/[^\wа-яё-]+/gi, '_') + '.json';
+            document.body.appendChild(a); a.click(); a.remove();
+          }, function (e) { msg(m, human(e)); });
+        } else if (act === 'del') {
+          SASMO.armReset(b, function () {
+            C.deleteStudent(kid.id).then(function () { SASMO.reload(); }, function (e) { msg(m, human(e)); });
+          });
+        } else if (act === 'import') {
+          var moved = C.importLocal(active.grade);
+          C.push().then(function () {
+            msg(document.getElementById('impmsg'), moved.length
+              ? t('Перенесено. Прогресс теперь в профиле «{n}».', { n: active.nickname })
+              : t('Переносить нечего: у профиля уже есть свой прогресс.'), true);
+          });
+        }
+      });
+    }, function (e) {
+      document.getElementById('kids').innerHTML = '<div class="empty">' + esc(human(e)) + '</div>';
+    });
+  }
+
+  /* Прогресс, решённый в этом браузере до входа, можно отдать профилю. */
+  function importOffer(active) {
+    if (!active) return '';
+    var keys = active.grade === 2 ? ['sasmo.g2.progress'] : ['sasmo.progress'];
+    var has = false;
+    try { has = keys.some(function (k) { return localStorage.getItem(k) && localStorage.getItem(C.prefix() + k) === null; }); } catch (e) { /* пусто */ }
+    if (!has) return '';
+    return '<div class="note warm"><p>' +
+      t('В этом браузере есть прогресс, решённый до входа. Перенести его в профиль «{n}»?', { n: esc(active.nickname) }) +
+      '</p><button class="mini" data-act="import">' + t('Перенести') + '</button><div class="msg" id="impmsg"></div></div>';
+  }
+})();
+</script>
+</body>
+</html>

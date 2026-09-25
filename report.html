@@ -62,6 +62,8 @@
 </div>
 
 <script src="assets/i18n.js"></script>
+<script src="assets/cloud-config.js"></script>
+<script src="assets/cloud.js"></script>
 <script src="assets/plan.js"></script>
 <script src="assets/plan2.js"></script>
 <script src="assets/quiz.js"></script>
@@ -96,9 +98,13 @@
   var rep = document.getElementById('rep');
 
   document.querySelector('.crumb').innerHTML = '<a href="' + hub + '">' + t('← весь план') + '</a>';
-  var who = window.SASMO_CLOUD && window.SASMO_CLOUD.studentName ? window.SASMO_CLOUD.studentName() : '';
-  document.getElementById('sub').textContent =
-    PLAN.label + (who ? ' · ' + who : '') + ' · ' + new Date().toLocaleDateString(I18N.lang === 'en' ? 'en-GB' : 'ru-RU');
+  var CLOUD = window.SASMO_CLOUD;
+  var remoteId = params.get('student');       // учитель смотрит ученика своего класса
+  function header(who) {
+    document.getElementById('sub').textContent =
+      PLAN.label + (who ? ' · ' + who : '') + ' · ' + new Date().toLocaleDateString(I18N.lang === 'en' ? 'en-GB' : 'ru-RU');
+  }
+  header(CLOUD && CLOUD.studentName ? CLOUD.studentName() : '');
   document.title = t('Отчёт «до и после»') + ' — ' + BRAND.name;
 
   /* Разделы: какая тема к какому относится. Тема берётся из формы замера. */
@@ -120,9 +126,38 @@
     return AREAS[0];
   }
 
-  var progress = SASMO.getProgress();
-  var pre = progress.pre && progress.pre.done ? progress.pre : null;
-  var post = progress.post && progress.post.done ? progress.post : null;
+  /* Откуда данные: свой прогресс на этом устройстве или — для учителя —
+     прогресс ученика из облака (?student=<id>). */
+  var progress = {}, errorCount = 0, pre = null, post = null;
+  function use(prog, errs) {
+    progress = prog || {};
+    errorCount = errs;
+    pre = progress.pre && progress.pre.done ? progress.pre : null;
+    post = progress.post && progress.post.done ? progress.post : null;
+  }
+  function source(done) {
+    if (!remoteId || !CLOUD || !CLOUD.session()) {
+      use(SASMO.getProgress(), SASMO.getErrors().length);
+      return done();
+    }
+    document.querySelector('.crumb').innerHTML = '<a href="teacher.html">' + t('← к классу') + '</a>';
+    CLOUD.api('GET', '/rest/v1/students?select=nickname,grade&id=eq.' + encodeURIComponent(remoteId))
+      .then(function (st) {
+        if (st && st[0]) header(st[0].nickname);
+        return CLOUD.readKv([remoteId], [PLAN.keys.progress, PLAN.keys.errors]);
+      })
+      .then(function (rows) {
+        var prog = {}, errs = [];
+        rows.forEach(function (r) {
+          if (r.key === PLAN.keys.progress) prog = r.value;
+          if (r.key === PLAN.keys.errors) errs = r.value || [];
+        });
+        use(prog, errs.length);
+        done();
+      }, function () {
+        rep.innerHTML = '<div class="empty">' + t('Не удалось получить данные ученика из облака.') + '</div>';
+      });
+  }
 
   // Нужны обе формы класса: темы задач берём из той, что решалась
   var forms = {};
@@ -130,7 +165,7 @@
     forms.A = a;
     SASMO.loadSet('data/assess-g' + g + 'b.js', 'ASSESSG' + g + 'B', function (b) {
       forms.B = b;
-      render();
+      source(render);
     }, fail);
   }, fail);
 
@@ -281,7 +316,7 @@
       tile(t('точность на занятиях'), tot ? Math.round(ok / tot * 100) + '%' : '—', tot ? t('{a} из {n} задач', { a: ok, n: tot }) : '') +
       tile(t('пробные экзамены'), exams.length ? exams.map(function (e) { return e.s; }).join(' → ') : '—',
            exams.length ? t('из 85 баллов') : t('ещё не было')) +
-      tile(t('в журнале ошибок'), SASMO.getErrors().length, t('задач ждут повторения')) +
+      tile(t('в журнале ошибок'), errorCount, t('задач ждут повторения')) +
       '</div></div>';
 
     /* ---- как читать ---- */

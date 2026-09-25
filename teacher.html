@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Панель учителя</title>
+<link rel="stylesheet" href="assets/quiz.css">
+</head>
+<body>
+
+<div class="header">
+  <div class="logo brand"></div>
+  <div class="sub" data-i18n="для учителя">для учителя</div>
+  <h2 data-i18n="Панель учителя">Панель учителя</h2>
+  <div class="crumb"><a href="account.html">← аккаунт</a></div>
+</div>
+
+<div class="container" id="app">
+  <div class="empty">…</div>
+</div>
+
+<script src="assets/i18n.js"></script>
+<script src="assets/cloud-config.js"></script>
+<script src="assets/cloud.js"></script>
+<script src="assets/plan.js"></script>
+<script src="assets/plan2.js"></script>
+<script src="assets/quiz.js"></script>
+<script>
+/* ==========================================================================
+   Панель учителя
+
+   Классы учителя, код для входа в класс, состав и сводка по каждому
+   ученику: сколько дней пройдено, точность, пробные экзамены, входной и
+   итоговый тесты, прирост, когда занимался последний раз. Отсюда же —
+   отчёт «до и после» по ученику и выгрузка класса в CSV.
+
+   Учитель видит только тех, кого записали в его класс (правила RLS в
+   supabase/schema.sql), и только читает: менять прогресс он не может.
+   Ученика можно завести и самому — когда согласие родителей собирает школа.
+   ========================================================================== */
+(function () {
+  var t = I18N.t;
+  var C = window.SASMO_CLOUD;
+  var app = document.getElementById('app');
+  document.querySelector('.crumb').innerHTML = '<a href="account.html">' + t('← аккаунт') + '</a>';
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+  function msg(el, text, ok) { el.className = 'msg ' + (ok ? 'ok' : 'err'); el.textContent = text; }
+  function human(e) {
+    if (e && (e.status === 0 || /fetch|network/i.test(e.message))) return t('Нет связи с сервером. Проверь интернет.');
+    return e && e.message || t('Что-то пошло не так.');
+  }
+
+  if (!C || !C.enabled() || !C.session()) {
+    app.innerHTML = '<div class="empty">' + t('Сначала войдите в аккаунт учителя.') +
+                    '<br><br><a class="btn" href="account.html">' + t('Войти') + '</a></div>';
+    return;
+  }
+
+  /* Сводка по одному ученику из его прогресса (ключ класса). */
+  function summary(st, rows) {
+    var PLAN = window.PLANS[st.grade === 2 ? 2 : 3];
+    var prog = {}, errs = [], last = 0;
+    rows.forEach(function (r) {
+      if (r.student_id !== st.id) return;
+      last = Math.max(last, Date.parse(r.updated_at) || 0);
+      if (r.key === PLAN.keys.progress) prog = r.value || {};
+      if (r.key === PLAN.keys.errors) errs = r.value || [];
+    });
+    var done = 0, total = 0, ok = 0, tot = 0, exams = [];
+    PLAN.days.forEach(function (d) {
+      if (d.kind === 'review') return;
+      total++;
+      var rec = prog[d.id];
+      if (!rec || !rec.done) return;
+      done++;
+      if (d.kind === 'exam') exams.push(rec.score);
+      else { ok += rec.ok || 0; tot += rec.total || 0; }
+    });
+    var pre = prog.pre && prog.pre.done ? prog.pre : null;
+    var post = prog.post && prog.post.done ? prog.post : null;
+    return {
+      done: done, total: total, acc: tot ? Math.round(ok / tot * 100) : null, exams: exams,
+      pre: pre ? pre.score : null, preForm: pre && pre.meta ? pre.meta.form : '',
+      post: post ? post.score : null, postForm: post && post.meta ? post.meta.form : '',
+      growth: pre && post ? post.score - pre.score : null,
+      errors: errs.length, last: last
+    };
+  }
+
+  function when(ms) {
+    if (!ms) return '—';
+    var d = new Date(ms);
+    return String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0');
+  }
+
+  C.listClasses().then(render, function (e) {
+    app.innerHTML = '<div class="empty">' + esc(human(e)) + '</div>';
+  });
+
+  function render(classes) {
+    var html =
+      '<div class="note"><h3>' + t('Новый класс') + '</h3><div class="form">' +
+        '<label>' + t('Название') + '<input type="text" id="cname" maxlength="60" placeholder="' + t('например, 3А, кружок по средам') + '"></label>' +
+        '<label>' + t('Класс') + '<select id="cgrade"><option value="3">' + t('3 класс') + '</option><option value="2">' + t('2 класс') + '</option></select></label>' +
+        '<button class="btn sec" id="cadd">' + t('Создать') + '</button><div id="cm"></div>' +
+      '</div></div>';
+
+    if (!classes.length) {
+      html += '<div class="empty">' + t('Классов пока нет. Создайте первый — появится код, который родители вводят в аккаунте.') + '</div>';
+    }
+    classes.forEach(function (c) {
+      html += '<div class="week" data-class="' + c.id + '"><h3>' + esc(c.name) +
+        '<small>' + (c.grade ? t('{g} класс', { g: c.grade }) + ' · ' : '') + t('код для родителей:') +
+        ' <span class="code">' + esc(c.join_code) + '</span></small></h3>' +
+        '<div class="roster-box"><div class="empty">…</div></div></div>';
+    });
+    app.innerHTML = html;
+
+    document.getElementById('cadd').addEventListener('click', function () {
+      var name = document.getElementById('cname').value.trim();
+      var m = document.getElementById('cm');
+      if (!name) { msg(m, t('Впиши название класса.')); return; }
+      C.createClass({ name: name, grade: +document.getElementById('cgrade').value })
+        .then(function () { SASMO.reload(); }, function (e) { msg(m, human(e)); });
+    });
+
+    classes.forEach(loadClass);
+  }
+
+  function loadClass(c) {
+    var box = document.querySelector('[data-class="' + c.id + '"] .roster-box');
+    C.classRoster(c.id).then(function (members) {
+      var kids = members.map(function (m) { return m.students; }).filter(Boolean);
+      return C.readKv(kids.map(function (k) { return k.id; }),
+                      ['sasmo.progress', 'sasmo.errors', 'sasmo.g2.progress', 'sasmo.g2.errors'])
+        .then(function (rows) { drawClass(c, box, kids, rows); });
+    }).catch(function (e) { box.innerHTML = '<div class="empty">' + esc(human(e)) + '</div>'; });
+  }
+
+  function drawClass(c, box, kids, rows) {
+    var sums = kids.map(function (k) { return { k: k, s: summary(k, rows) }; });
+    sums.sort(function (a, b) { return a.k.nickname.localeCompare(b.k.nickname); });
+
+    function score(v, f) { return v === null ? '—' : v + ' / 20' + (f ? ' <small>(' + f + ')</small>' : ''); }
+    var html = !sums.length
+      ? '<div class="empty">' + t('В классе пока никого. Дайте родителям код класса или добавьте ученика сами.') + '</div>'
+      : '<div class="tablewrap"><table class="roster"><tr>' +
+          '<th>' + t('Ученик') + '</th><th class="n">' + t('дни') + '</th><th class="n">' + t('точность') +
+          '</th><th class="n">' + t('экзамены') + '</th><th class="n">' + t('до') + '</th><th class="n">' + t('после') +
+          '</th><th class="n">' + t('прирост') + '</th><th class="n">' + t('ошибок') + '</th><th class="n">' + t('был') +
+          '</th><th></th></tr>' +
+          sums.map(function (x) {
+            var s = x.s;
+            return '<tr><td><b>' + esc(x.k.nickname) + '</b></td>' +
+              '<td class="n">' + s.done + ' / ' + s.total + '</td>' +
+              '<td class="n">' + (s.acc === null ? '—' : s.acc + '%') + '</td>' +
+              '<td class="n">' + (s.exams.length ? s.exams.join(' → ') : '—') + '</td>' +
+              '<td class="n">' + score(s.pre, s.preForm) + '</td>' +
+              '<td class="n">' + score(s.post, s.postForm) + '</td>' +
+              '<td class="n">' + (s.growth === null ? '—' : (s.growth > 0 ? '+' : '') + s.growth) + '</td>' +
+              '<td class="n">' + s.errors + '</td>' +
+              '<td class="n">' + when(s.last) + '</td>' +
+              '<td><a class="mini" href="report.html?student=' + x.k.id + (x.k.grade === 2 ? '&g=2' : '') + '">' + t('отчёт') + '</a> ' +
+                '<button class="mini ghost" data-remove="' + x.k.id + '" data-armed-text="' + t('убрать?') + '">' + t('убрать') + '</button></td></tr>';
+          }).join('') + '</table></div>';
+
+    // средний прирост по тем, у кого есть оба теста
+    var both = sums.filter(function (x) { return x.s.growth !== null; });
+    if (both.length) {
+      var avg = both.reduce(function (a, x) { return a + x.s.growth; }, 0) / both.length;
+      html += '<p class="hint-line" style="text-align:left">' +
+        t('Оба теста у {n} из {m}; средний прирост {g} балла из 20.', {
+          n: both.length, m: sums.length, g: (avg > 0 ? '+' : '') + avg.toFixed(1) }) + '</p>';
+    }
+
+    html += '<div class="tools" style="margin-top:.6rem">' +
+      '<button class="mini" data-csv="1">' + t('⬇ CSV') + '</button>' +
+      '<button class="mini" data-newkid="1">' + t('+ ученик (согласие собрала школа)') + '</button>' +
+      '</div><div class="msg"></div>';
+    box.innerHTML = html;
+
+    box.onclick = function (ev) {
+      var m = box.querySelector('.msg');
+      var rm = ev.target.closest('[data-remove]');
+      if (rm) {
+        SASMO.armReset(rm, function () {
+          C.removeFromClass(c.id, rm.getAttribute('data-remove')).then(function () { loadClass(c); },
+            function (e) { msg(m, human(e)); });
+        });
+        return;
+      }
+      if (ev.target.closest('[data-csv]')) {
+        var head = ['nickname', 'grade', 'days_done', 'days_total', 'accuracy_pct', 'exams',
+                    'pre_score', 'pre_form', 'post_score', 'post_form', 'growth', 'errors', 'last_active'];
+        var lines = [head.join(',')].concat(sums.map(function (x) {
+          var s = x.s;
+          return [x.k.nickname, x.k.grade, s.done, s.total, s.acc, s.exams.join(' '),
+                  s.pre, s.preForm, s.post, s.postForm, s.growth, s.errors,
+                  s.last ? new Date(s.last).toISOString().slice(0, 10) : '']
+            .map(function (v) { v = v === null || v === undefined ? '' : String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; })
+            .join(',');
+        }));
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob(['﻿' + lines.join('\n')], { type: 'text/csv' }));
+        a.download = c.name.replace(/[^\wа-яё-]+/gi, '_') + '.csv';
+        document.body.appendChild(a); a.click(); a.remove();
+        return;
+      }
+      if (ev.target.closest('[data-newkid]')) {
+        var nick = window.prompt(t('Псевдоним ученика (не настоящее имя):'));
+        if (!nick || !nick.trim()) return;
+        if (!window.confirm(t('Подтвердите: согласие родителей этого ученика собрано школой.'))) return;
+        C.createStudent({ nickname: nick, grade: c.grade || 3, consent_by: 'school' })
+          .then(function (st) { return C.addToClass(c.id, st.id); })
+          .then(function () { loadClass(c); }, function (e) { msg(m, human(e)); });
+      }
+    };
+  }
+})();
+</script>
+</body>
+</html>

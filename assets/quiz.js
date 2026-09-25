@@ -73,7 +73,9 @@ window.SASMO = (function () {
     if (!plan) return;
     // Демо-режим хранит образец прогресса под своими ключами:
     // показ для гостей не должен трогать настоящие результаты ребёнка.
-    var pre = I.isDemo() ? 'demo.' : '';
+    // Вошедший взрослый выбрал ученика — у каждого ребёнка свои ключи (assets/cloud.js).
+    var cloud = window.SASMO_CLOUD;
+    var pre = I.isDemo() ? 'demo.' : (cloud ? cloud.prefix() : '');
     if (plan.keys && plan.keys.progress) PROGRESS_KEY = pre + plan.keys.progress;
     if (plan.keys && plan.keys.errors)   ERRORS_KEY   = pre + plan.keys.errors;
     var g = plan.grade && plan.grade !== 3 ? '?g=' + plan.grade : '';
@@ -97,6 +99,8 @@ window.SASMO = (function () {
   function save(key, value) {
     try {
       localStorage.setItem(key, JSON.stringify(value));
+      // облако (если настроено) отправит изменение само, чуть позже
+      if (window.SASMO_CLOUD) window.SASMO_CLOUD.touched(key);
       return true;
     } catch (e) {
       return false;
