@@ -51,7 +51,7 @@ function page(file, query, storage) {
       return inline(fs.readFileSync(path.join(ROOT, src), 'utf8'));
     });
   // наборы задач — перед скриптом страницы, чтобы SASMO.loadSet нашёл их готовыми
-  const withData = html.replace(/(<script>\n(\/\* =|\(function))/, forms + sets + '\n$1');
+  const withData = html.replace(/(<script>\r?\n(\/\* =|\(function))/, forms + sets + '\n$1');
   const dom = new JSDOM(withData, {
     url: 'http://localhost/' + file + (query || ''),
     runScripts: 'dangerously', pretendToBeVisual: true, virtualConsole: quiet,

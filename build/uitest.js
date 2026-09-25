@@ -954,7 +954,7 @@ async function assessPage(query, storage, page) {
     .map(f => inline(fs.readFileSync(path.join(ROOT, 'data', 'assess-' + f + '.js'), 'utf8'))).join('\n');
   const html = fs.readFileSync(path.join(ROOT, page), 'utf8')
     .replace(/<script src="([^"]+)"><\/script>/g, (m, src) => inline(fs.readFileSync(path.join(ROOT, src), 'utf8')))
-    .replace('<script>\n/* ====', forms + '\n<script>\n/* ====');
+    .replace(/<script>\r?\n\/\* ====/, (m) => forms + '\n' + m);
   const dom = new JSDOM(html, {
     url: 'http://localhost/' + page + query,
     runScripts: 'dangerously', pretendToBeVisual: true, virtualConsole: quiet,
