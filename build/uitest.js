@@ -859,6 +859,53 @@ if (!fs.existsSync(path.join(ROOT, 'sasmo-month.html'))) {
   ok(missing.length === 0, 'fmo22: нет файлов картинок: ' + missing.join(', '));
 }
 
+/* --------------- 13b. FISO: две части по 4 балла и варианты-картинки ---- */
+
+/* У FISO 20 задач с выбором и 5 открытых, все по 4 балла, штрафов нет.
+   В №6 варианты — картинки: они должны дойти до страницы тегами <img>. */
+{
+  const w = boot(1400);
+  w.eval(fs.readFileSync(path.join(ROOT, 'assets/paper.js'), 'utf8'));
+  w.eval(fs.readFileSync(path.join(ROOT, 'data/fiso26.js'), 'utf8'));
+  const data = w.FISO26;
+  ok(data.questions.length === 25, 'fiso26: в работе должно быть 25 задач');
+  ok(w.SASMO_PAPER.byId('fiso26').max === 100, 'fiso26: в каталоге максимум должен быть 100');
+
+  const start = (answer) => {
+    w.document.getElementById('box').innerHTML = '';
+    w.localStorage.clear();
+    w.SASMO.usePlan({ keys: w.SASMO_PAPER.keys('dima'), hubHref: 'index.html',
+                      errorsHref: 'errors.html?who=dima' });
+    const quiz = w.SASMO.run({
+      mount: w.document.getElementById('box'), questions: data.questions,
+      mode: 'exam', setId: 'fiso26', rules: data.rules, minutes: 60
+    });
+    answer(quiz);
+    w.document.getElementById('finishBtn').click();
+    return { quiz, fs: w.document.getElementById('fs').textContent };
+  };
+
+  let r = start(quiz => answerAll(w, w.document, quiz));
+  ok(r.quiz.rules.max === 100, `fiso26: движок должен насчитать максимум 100, а вышло ${r.quiz.rules.max}`);
+  ok(r.quiz.sectionOf(19) === 0 && r.quiz.sectionOf(20) === 1,
+     'fiso26: задачи разошлись по частям неверно');
+  ok(r.fs === '100 / 100', 'fiso26: за всё верное должно быть 100 / 100, а вышло ' + r.fs);
+  ok(w.document.querySelectorAll('#o5_2 img').length === 1,
+     'fiso26 #6: вариант C должен быть картинкой');
+
+  // неверный ответ в №1 штрафа не даёт: просто 4 балла мимо
+  r = start(quiz => {
+    answerAll(w, w.document, quiz);
+    w.document.getElementById('o0_0').click();
+  });
+  ok(r.fs === '96 / 100', 'fiso26: неверный ответ не должен штрафоваться, а вышло ' + r.fs);
+
+  const imgs = data.questions.map(q => q.img).filter(Boolean)
+    .concat(['a', 'b', 'c', 'd'].map(s => 'img/fiso/sample/q06' + s + '.png'));
+  const missing = imgs.filter(f => !fs.existsSync(path.join(ROOT, f)));
+  ok(missing.length === 0, 'fiso26: нет файлов картинок: ' + missing.join(', '));
+}
+
 /* ------------- 14. «Мне непонятно — объясни»: теория к задаче -------- */
 
 {

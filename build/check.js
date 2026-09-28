@@ -97,7 +97,9 @@ function checkSet(where, data, seen) {
           const ok = answers.some(b => b === right ||
                                        (rightNum !== null && digits(b) === rightNum) ||
                                        stems(b).some(x => stems(right).includes(x)));
-          if (!ok) {
+          // Варианты-картинки (FISO №6) текста не несут — сверять с разбором нечего
+          const picture = right === '' && /<img/.test(q.opts[q.ans]);
+          if (!ok && !picture) {
             warns.push(`${at}: в разборе не видно ответа «${right}» (жирным: ${answers.join(' | ') || '—'})`);
           }
         }
@@ -167,6 +169,7 @@ const PAPERS = [
   { id: 'amo24',      v: 'AMO24',      n: 25, label: 'AMO 2024 / 3 класс' },
   { id: 'amo23',      v: 'AMO23',      n: 25, label: 'AMO 2023 / 3 класс' },
   { id: 'fmo22',      v: 'FMO22',      n: 21, label: 'FMO 2022 / 3 класс' },
+  { id: 'fiso26',     v: 'FISO26',     n: 25, label: 'FISO 2026 / 3–4 класс' },
   { id: 'mathxcel24', v: 'MATHXCEL24', n: 25, label: 'MathXCEL 2024 / 3 класс' }
 ];
 
