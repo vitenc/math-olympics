@@ -4689,11 +4689,16 @@ window.SASMO_LOG = (function () {
     });
   }
 
-  /* Набор доведён до конца. Поля — из записи движка (см. storeDone). */
+  function newId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+  /* Строка о наборе. status: 'partial' — набор ещё идёт (таблица обновит
+     строку с тем же id), 'done' — набор закончен. Поля — из движка
+     (Quiz logRow в assets/quiz.js). */
   function done(info) {
     if (!enabled()) return;
     var row = {
-      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      id: info.id || newId(),
+      status: info.status || 'done',
       ts: new Date().toISOString(),
       who: pageWho || deviceWho() || '?',
       device: device(),
@@ -4707,7 +4712,8 @@ window.SASMO_LOG = (function () {
       spent: typeof info.spent === 'number' ? Math.round(info.spent) : '',
       wrong: info.wrong || []
     };
-    var q = queue();
+    // В очереди нужна только последняя версия строки: старую выкидываем
+    var q = queue().filter(function (r) { return r.id !== row.id; });
     q.push(row);
     saveQueue(q);
     flush();
@@ -4718,6 +4724,7 @@ window.SASMO_LOG = (function () {
   return {
     enabled: enabled,
     done: done,
+    newId: newId,
     flush: flush,
     setWho: setWho,
     deviceWho: deviceWho,
@@ -5551,6 +5558,10 @@ window.SASMO = (function () {
       if (rec.answers[k].ok) rec.ok++; else rec.no++;
     });
     rec.date = today();
+    this.logPartial(rec, function (k) {
+      var a = rec.answers[k];
+      return a ? a.g : undefined;
+    });
     putRecord(setId, rec);
   };
 
@@ -5572,6 +5583,12 @@ window.SASMO = (function () {
     };
     if (this.cfg.meta) rec.meta = this.cfg.meta;
     rec.total = this.live;
+    var given = rec.exam.given, Q = this.Q;
+    this.logPartial(rec, function (k) {
+      var g = given[k];
+      if (g === null || g === undefined) return undefined;
+      return Q[k].type === 'open' && parseNum(g) === null ? undefined : g;
+    });
     putRecord(this.cfg.setId, rec);
   };
 
@@ -5923,28 +5940,75 @@ window.SASMO = (function () {
     this.logDone(rec);
   };
 
-  /* Строка в журнал прогресса (assets/log.js) — чтобы взрослый видел, что
-     решено на этом устройстве. Без настройки журнала ничего не уходит. */
-  Quiz.prototype.logDone = function (rec) {
+  /* Журнал прогресса (assets/log.js) — чтобы взрослый видел, что решено на
+     этом устройстве. У каждой попытки набора свой id (rec.logId): пока набор
+     не закончен, каждые LOG_STEP ответов уходит строка «в процессе», и
+     таблица обновляет ту же строку. Конец набора — та же строка со статусом
+     «закончен», а id сбрасывается: следующая попытка — новая строка.
+     Без настройки журнала ничего не уходит. */
+  var LOG_STEP = 5;
+
+  Quiz.prototype.logOn = function () {
     var log = window.SASMO_LOG;
-    if (!log || !log.enabled() || I.isDemo()) return;
+    var id = this.cfg.setId;
+    return !!(log && log.enabled() && !I.isDemo() && id && id !== 'errors');
+  };
+
+  Quiz.prototype.logRow = function (rec, status, ok, no, wrong) {
     var setId = this.cfg.setId;
     var paper = window.SASMO_PAPER && window.SASMO_PAPER.byId(setId);
-    var Q = this.Q;
-    var wrong = [];
-    Q.forEach(function (q, i) {
-      var a = rec.answers && rec.answers[i];
-      if (a && a.ok === false) wrong.push('№' + (i + 1) + (q.topic ? ' ' + q.topic : ''));
-    });
-    log.done({
+    if (!rec.logId) rec.logId = window.SASMO_LOG.newId();
+    window.SASMO_LOG.done({
+      id: rec.logId, status: status,
       setId: setId,
       grade: paper ? paper.grade : (/\bg2\b/.test(PROGRESS_KEY) ? 2 : 3),
       title: document.title,
       mode: this.cfg.mode,
-      ok: rec.ok, no: rec.no, total: rec.total,
-      score: rec.score, max: rec.max, spent: rec.spent,
+      ok: ok, no: no, total: this.live,
+      score: status === 'done' ? rec.score : undefined,
+      max: status === 'done' ? rec.max : undefined,
+      spent: status === 'done' ? rec.spent : this.elapsed(),
       wrong: wrong
     });
+  };
+
+  // Номера задач с ошибкой: given(i) — ответ ребёнка или undefined, если ответа нет
+  Quiz.prototype.logWrong = function (given) {
+    var wrong = [], ok = 0, no = 0;
+    this.Q.forEach(function (q, i) {
+      if (q.skip) return;
+      var g = given(i);
+      if (g === undefined) return;
+      if (isCorrect(q, g)) { ok++; return; }
+      no++;
+      wrong.push('№' + (i + 1) + (q.topic ? ' ' + q.topic : ''));
+    });
+    return { ok: ok, no: no, wrong: wrong };
+  };
+
+  /* Незаконченный набор: строка уходит, когда ответов стало на LOG_STEP
+     больше, чем в прошлый раз. Запись rec сохраняет вызывающий. */
+  Quiz.prototype.logPartial = function (rec, given) {
+    if (!this.logOn()) return;
+    var w = this.logWrong(given);
+    var answered = w.ok + w.no;
+    if (answered === 0 || answered >= this.live) return;
+    if (answered < (rec.logAt || 0) + LOG_STEP) return;
+    rec.logAt = answered;
+    this.logRow(rec, 'partial', w.ok, w.no, w.wrong);
+  };
+
+  Quiz.prototype.logDone = function (rec) {
+    if (!this.logOn()) return;
+    var wrong = [];
+    this.Q.forEach(function (q, i) {
+      var a = rec.answers && rec.answers[i];
+      if (a && a.ok === false) wrong.push('№' + (i + 1) + (q.topic ? ' ' + q.topic : ''));
+    });
+    this.logRow(rec, 'done', rec.ok, rec.no, wrong);
+    delete rec.logId;
+    delete rec.logAt;
+    putRecord(this.cfg.setId, rec);
   };
 
   Quiz.prototype.showPracticeResult = function () {

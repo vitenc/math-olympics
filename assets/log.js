@@ -85,11 +85,16 @@ window.SASMO_LOG = (function () {
     });
   }
 
-  /* Набор доведён до конца. Поля — из записи движка (см. storeDone). */
+  function newId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+  /* Строка о наборе. status: 'partial' — набор ещё идёт (таблица обновит
+     строку с тем же id), 'done' — набор закончен. Поля — из движка
+     (Quiz logRow в assets/quiz.js). */
   function done(info) {
     if (!enabled()) return;
     var row = {
-      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      id: info.id || newId(),
+      status: info.status || 'done',
       ts: new Date().toISOString(),
       who: pageWho || deviceWho() || '?',
       device: device(),
@@ -103,7 +108,8 @@ window.SASMO_LOG = (function () {
       spent: typeof info.spent === 'number' ? Math.round(info.spent) : '',
       wrong: info.wrong || []
     };
-    var q = queue();
+    // В очереди нужна только последняя версия строки: старую выкидываем
+    var q = queue().filter(function (r) { return r.id !== row.id; });
     q.push(row);
     saveQueue(q);
     flush();
@@ -114,6 +120,7 @@ window.SASMO_LOG = (function () {
   return {
     enabled: enabled,
     done: done,
+    newId: newId,
     flush: flush,
     setWho: setWho,
     deviceWho: deviceWho,

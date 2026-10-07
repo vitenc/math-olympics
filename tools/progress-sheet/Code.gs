@@ -12,7 +12,9 @@
 var SHEET = 'Журнал';
 var HEAD = ['Время', 'Ученик', 'Класс', 'Набор', 'Название', 'Режим',
             'Верно', 'Ошибок', 'Всего', 'Баллы', 'Макс', 'Минут',
-            'Ошибки в задачах', 'Устройство', 'id'];
+            'Ошибки в задачах', 'Устройство', 'id', 'Статус'];
+var ID_COL = 15;                    // столбец id — в нём ищем строку попытки
+var DONE = 'закончен', PARTIAL = 'в процессе';
 
 function sheet_() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -20,34 +22,49 @@ function sheet_() {
   if (sh.getLastRow() === 0) {
     sh.appendRow(HEAD);
     sh.setFrozenRows(1);
-    sh.getRange(1, 1, 1, HEAD.length).setFontWeight('bold');
   }
+  // таблица со старой шапкой (без «Статус») — дописываем недостающие столбцы
+  if (sh.getLastColumn() < HEAD.length) {
+    sh.getRange(1, 1, 1, HEAD.length).setValues([HEAD]);
+  }
+  sh.getRange(1, 1, 1, HEAD.length).setFontWeight('bold');
   return sh;
 }
 
+/* Строка попытки. Пока набор не закончен, тренажёр шлёт её каждые 5 ответов
+   со статусом partial — обновляем ту же строку (по id). Итог (done) —
+   последнее обновление; опоздавшая partial после done его не перетирает. */
 function doPost(e) {
   var d;
   try { d = JSON.parse(e.postData.contents); } catch (err) { return text_('bad json'); }
   if (!d || !d.id || !d.set) return text_('bad row');
+  var status = d.status === 'partial' ? PARTIAL : DONE;
+
+  var row = [
+    new Date(d.ts || Date.now()), clip_(d.who, 40), d.grade || '', clip_(d.set, 40),
+    clip_(d.title, 120), clip_(d.mode, 20),
+    num_(d.ok), num_(d.no), num_(d.total), num_(d.score), num_(d.max),
+    d.spent === '' || d.spent == null ? '' : Math.round(Number(d.spent) / 6) / 10,
+    clip_((d.wrong || []).join('; '), 2000), clip_(d.device, 10), clip_(d.id, 20), status
+  ];
 
   var lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
     var sh = sheet_();
-    // повтор той же строки (сеть оборвалась после записи) — пропускаем
     var last = sh.getLastRow();
     if (last > 1) {
-      var from = Math.max(2, last - 500);
-      var ids = sh.getRange(from, HEAD.length, last - from + 1, 1).getValues();
-      for (var i = 0; i < ids.length; i++) if (ids[i][0] === d.id) return text_('dup');
+      var from = Math.max(2, last - 1000);
+      var vals = sh.getRange(from, ID_COL, last - from + 1, 2).getValues();
+      for (var i = vals.length - 1; i >= 0; i--) {
+        if (vals[i][0] !== d.id) continue;
+        var was = vals[i][1] || DONE;            // старые строки без статуса — законченные
+        if (was === DONE) return text_('dup');
+        sh.getRange(from + i, 1, 1, HEAD.length).setValues([row]);
+        return text_('updated');
+      }
     }
-    sh.appendRow([
-      new Date(d.ts || Date.now()), clip_(d.who, 40), d.grade || '', clip_(d.set, 40),
-      clip_(d.title, 120), clip_(d.mode, 20),
-      num_(d.ok), num_(d.no), num_(d.total), num_(d.score), num_(d.max),
-      d.spent === '' || d.spent == null ? '' : Math.round(Number(d.spent) / 6) / 10,
-      clip_((d.wrong || []).join('; '), 2000), clip_(d.device, 10), clip_(d.id, 20)
-    ]);
+    sh.appendRow(row);
   } finally {
     lock.releaseLock();
   }
@@ -81,7 +98,8 @@ function report_(who) {
       t: new Date(r[0]).getTime(), who: String(r[1] || '?'), grade: r[2], set: String(r[3]),
       title: String(r[4] || ''), mode: String(r[5] || ''),
       ok: num_(r[6]), no: num_(r[7]), total: num_(r[8]), score: num_(r[9]), max: num_(r[10]),
-      min: num_(r[11]), wrong: String(r[12] || '').split('; ').filter(String), device: String(r[13] || '')
+      min: num_(r[11]), wrong: String(r[12] || '').split('; ').filter(String), device: String(r[13] || ''),
+      partial: r[15] === PARTIAL
     };
   });
   var data = JSON.stringify({ rows: rows, who: who, now: Date.now() }).replace(/</g, '\\u003c');
@@ -173,6 +191,9 @@ var REPORT_CSS_ = [
   '.track.res-t b{background:var(--accent)}',
   '.track.res-t b.good{background:var(--good)}.track.res-t b.mid{background:var(--mid)}.track.res-t b.bad{background:var(--bad)}',
   '.row .mn{text-align:right;color:var(--muted);font-size:13px}',
+  '.open{display:inline-block;margin-top:4px;font-size:11.5px;font-weight:700;color:var(--mid);background:var(--mid-soft);',
+  'padding:1px 7px;border-radius:6px}',
+  '.track.res-t.part b{background:repeating-linear-gradient(45deg,var(--mid) 0 6px,transparent 6px 9px)!important}',
   '.errs{margin-top:5px;display:flex;flex-wrap:wrap;gap:4px}',
   '.chip{font-size:11.5px;background:var(--bad-soft);color:var(--bad);padding:1px 7px;border-radius:6px;white-space:nowrap}',
   '.more{border:0;background:none;color:var(--accent);font:inherit;font-size:12px;cursor:pointer;padding:0 2px}',
@@ -202,7 +223,11 @@ function reportApp_(DATA) {
     if (r.kind === 'exam') r.name = 'Пробный экзамен ' + r.set.replace(/\D/g, '');
     // одна олимпиада бывает для разных классов (GJMAT 3 и 4)
     if (r.kind === 'paper' && r.grade) r.name += ' · ' + r.grade + ' кл.';
-    r.pct = r.max ? r.score / r.max : (r.total ? r.ok / r.total : null);
+    r.done = (r.ok || 0) + (r.no || 0);           // сколько задач решено
+    // незаконченный набор: доля верных среди решённых, итог — по всему набору
+    r.base = r.partial ? r.done : r.total;
+    r.pct = r.partial ? (r.done ? r.ok / r.done : null)
+          : r.max ? r.score / r.max : (r.total ? r.ok / r.total : null);
     r.key = dkey(new Date(r.t));
     return r;
   }).sort(function (a, b) { return b.t - a.t; });
@@ -262,13 +287,14 @@ function reportApp_(DATA) {
     return n;
   }
   function stats(list) {
-    var ok = 0, tot = 0, min = 0, days = {};
+    var ok = 0, tot = 0, min = 0, days = {}, sets = 0, open = 0;
     list.forEach(function (r) {
-      if (r.total) { ok += r.ok || 0; tot += r.total; }
+      if (r.base) { ok += r.ok || 0; tot += r.base; }
       min += r.min || 0;
       days[r.key] = 1;
+      if (r.partial) open++; else sets++;
     });
-    return { sets: list.length, acc: tot ? ok / tot : null, min: min, days: Object.keys(days).length };
+    return { sets: sets, open: open, acc: tot ? ok / tot : null, min: min, days: Object.keys(days).length };
   }
   function dur(min) {
     min = Math.round(min);
@@ -332,9 +358,9 @@ function reportApp_(DATA) {
     var today = startOfDay(new Date());
     var by = {};
     list.forEach(function (r) {
-      if (!r.total) return;
+      if (!r.base) return;
       var b = by[r.key] || (by[r.key] = { ok: 0, tot: 0, sets: 0 });
-      b.ok += r.ok || 0; b.tot += r.total; b.sets++;
+      b.ok += r.ok || 0; b.tot += r.base; b.sets++;
     });
     var W = 640, H = 170, L = 30, B = 22, T = 8, bw = (W - L) / n;
     var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" role="img" aria-label="Точность по дням">';
@@ -410,7 +436,7 @@ function reportApp_(DATA) {
 
   function papers(list) {
     var by = {};
-    list.filter(function (r) { return r.kind === 'paper' || r.kind === 'exam' || r.kind === 'assess'; })
+    list.filter(function (r) { return !r.partial && (r.kind === 'paper' || r.kind === 'exam' || r.kind === 'assess'); })
       .forEach(function (r) {
         var b = by[r.set] || (by[r.set] = { name: r.name, kind: r.kind, tries: 0, best: null, last: r });
         b.tries++;
@@ -448,7 +474,9 @@ function reportApp_(DATA) {
 
   function row(r) {
     var id = r.t + r.set;
-    var res = r.max ? '<b>' + r.score + '</b> / ' + r.max + ' б.' : '<b>' + r.ok + '</b> из ' + r.total;
+    var res = r.partial ? 'верно <b>' + r.ok + '</b> из ' + r.done
+            : r.max ? '<b>' + r.score + '</b> / ' + r.max + ' б.' : '<b>' + r.ok + '</b> из ' + r.total;
+    var unfinished = r.partial ? '<span class="open">не закончен · решено ' + r.done + ' из ' + r.total + '</span>' : '';
     var errs = '';
     if (r.wrong.length) {
       var open = S.open[id], shown = open ? r.wrong : r.wrong.slice(0, 4);
@@ -458,9 +486,10 @@ function reportApp_(DATA) {
     }
     return '<div class="row"><span class="tm">' + hm(new Date(r.t)) + '</span>' +
       '<div style="min-width:0"><div class="tt"><span class="kind k-' + r.kind + '">' + KIND[r.kind] + '</span>' +
-      esc(r.name) + '</div>' + errs + '</div>' +
+      esc(r.name) + '</div>' + unfinished + errs + '</div>' +
       '<div class="res"><div class="txt"><span>' + res + '</span><span class="' + lvl(r.pct) + '">' + pctTxt(r.pct) + '</span></div>' +
-      '<div class="track res-t"><b class="' + lvl(r.pct) + '" style="width:' + Math.round((r.pct || 0) * 100) + '%"></b></div></div>' +
+      '<div class="track res-t' + (r.partial ? ' part' : '') + '"><b class="' + lvl(r.pct) + '" style="width:' +
+        Math.round((r.partial ? (r.total ? r.done / r.total : 0) : (r.pct || 0)) * 100) + '%"></b></div></div>' +
       '<span class="mn">' + (r.min ? Math.round(r.min) + ' мин' : '') + '</span></div>';
   }
 
@@ -498,7 +527,8 @@ function reportApp_(DATA) {
       kpi(all.length ? (gap === 0 ? 'сегодня' : gap === 1 ? 'вчера' : rel(all[0].t)) : '—', 'последнее занятие',
           all.length ? (gap >= 3 ? 'перерыв ' + gap + ' дн. · ' : '') + 'в ' + hm(new Date(all[0].t)) : '', gap >= 3 ? 'bad' : '') +
       kpi(sk + (sk ? ' 🔥' : ''), 'дней подряд', 'рекорд — ' + best) +
-      kpi(st.sets, 'наборов ' + periodWord(), st.days + ' ' + plural(st.days, 'день', 'дня', 'дней') + ' с занятиями') +
+      kpi(st.sets, 'наборов закончено ' + periodWord(), st.days + ' ' + plural(st.days, 'день', 'дня', 'дней') + ' с занятиями' +
+          (st.open ? ' · ещё ' + st.open + ' не ' + plural(st.open, 'закончен', 'закончены', 'закончены') : '')) +
       kpi(pctTxt(st.acc), 'верных ответов', periodWord(), lvl(st.acc)) +
       kpi(st.min ? dur(st.min) : '—', 'время с таймером', 'экзамены, олимпиады, таблица умножения') +
       '</div>' +

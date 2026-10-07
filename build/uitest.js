@@ -1014,14 +1014,23 @@ if (!fs.existsSync(path.join(ROOT, 'sasmo-month.html'))) {
   w.document.getElementById('o0_0').click();               // №1 — мимо
   w.document.getElementById('finishBtn').click();
 
-  ok(sent.length === 1, 'журнал: после «Завершить» должна уйти ровно одна строка, а ушло ' + sent.length);
+  /* Ответы на экзамене — каждые 5 уходит строка «в процессе»; отправка
+     асинхронная, поэтому сразу ушла только первая, остальное ждёт в очереди,
+     где от каждой попытки остаётся последняя версия. */
+  const first = sent[0] && sent[0].body;
+  const queued = JSON.parse(w.localStorage.getItem('log.queue') || '[]');
+  ok(first && first.status === 'partial' && first.ok + first.no === 5,
+     'журнал: первой должна уйти строка «в процессе» после 5 ответов: ' + JSON.stringify(first && [first.status, first.ok, first.no]));
+  ok(queued.length === 1, 'журнал: в очереди должна остаться одна строка попытки, а их ' + queued.length);
 
   // ребёнок, выбранный на хабе, — он же решающий на странице олимпиады
   w.SASMO_LOG.setDeviceWho('Богдан');
   ok(w.SASMO_PAPER.deviceSolver() === 'bogdan', 'журнал: имя с хаба должно стать решающим работы');
   w.SASMO_LOG.setDeviceWho('Кто-то');
   ok(w.SASMO_PAPER.deviceSolver() === null, 'журнал: незнакомое имя не должно выбирать решающего');
-  const row = sent[0] && sent[0].body;
+  const row = queued[queued.length - 1];
+  ok(row && first && row.id === first.id, 'журнал: итог должен обновлять ту же строку, что и «в процессе»');
+  ok(row && row.status === 'done', 'журнал: последняя версия строки должна быть «закончен»');
   if (row) {
     ok(row.who === 'Дима' && row.set === 'gjmat24g3' && row.grade === 3,
        'журнал: в строке не тот ученик, набор или класс: ' + JSON.stringify([row.who, row.set, row.grade]));
