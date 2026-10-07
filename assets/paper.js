@@ -95,6 +95,17 @@
     return null;
   }
 
+  /* Решающий, выбранный на хабе для этого устройства («Кто занимается на
+     этом устройстве?», assets/log.js), — ключ из SOLVERS или null. */
+  function deviceSolver() {
+    var name = window.SASMO_LOG ? window.SASMO_LOG.deviceWho() : '';
+    if (!name) return null;
+    for (var k in window.SOLVERS) {
+      if (window.SOLVERS[k].name === name) return k;
+    }
+    return null;
+  }
+
   /* Ключи хранения свои у каждого: и прогресс, и журнал ошибок.
      Это не то же, что ключи классов в plan.js, — работа вне программы. */
   function keys(who) {
@@ -214,5 +225,6 @@
     return paper;
   }
 
-  window.SASMO_PAPER = { open: open, openById: openById, byId: byId, keys: keys };
+  window.SASMO_PAPER = { open: open, openById: openById, byId: byId, keys: keys,
+                         deviceSolver: deviceSolver };
 })();

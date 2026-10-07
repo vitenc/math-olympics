@@ -50,7 +50,8 @@
   var t = I18N.t;
   var params = SASMO.params();
   var paper = SASMO_PAPER.byId(params.get('p'));
-  var who = params.get('who');
+  // Кто решает, уже выбрано на хабе для этого устройства — второй раз не спрашиваем
+  var who = params.get('who') || SASMO_PAPER.deviceSolver();
   var gate = document.getElementById('gate');
 
   function oops(html) {

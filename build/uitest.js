@@ -1015,6 +1015,12 @@ if (!fs.existsSync(path.join(ROOT, 'sasmo-month.html'))) {
   w.document.getElementById('finishBtn').click();
 
   ok(sent.length === 1, 'журнал: после «Завершить» должна уйти ровно одна строка, а ушло ' + sent.length);
+
+  // ребёнок, выбранный на хабе, — он же решающий на странице олимпиады
+  w.SASMO_LOG.setDeviceWho('Богдан');
+  ok(w.SASMO_PAPER.deviceSolver() === 'bogdan', 'журнал: имя с хаба должно стать решающим работы');
+  w.SASMO_LOG.setDeviceWho('Кто-то');
+  ok(w.SASMO_PAPER.deviceSolver() === null, 'журнал: незнакомое имя не должно выбирать решающего');
   const row = sent[0] && sent[0].body;
   if (row) {
     ok(row.who === 'Дима' && row.set === 'gjmat24g3' && row.grade === 3,
