@@ -152,6 +152,11 @@ def check_set(set_id, strict):
     for i, q in enumerate(questions, 1):
         at = f'{set_id} #{i}'
 
+        # Ответ не восстановлен (`skip`) — проверять нечего
+        if q.get('skip'):
+            skipped.append(f'{at}: skip — ответ не восстановлен')
+            continue
+
         # Ответ-утверждение проверяется по вариантам, а не числом
         if q.get('optcheck'):
             check_options(q, at, bad)

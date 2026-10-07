@@ -170,6 +170,7 @@ const PAPERS = [
   { id: 'amo23',      v: 'AMO23',      n: 25, label: 'AMO 2023 / 3 класс' },
   { id: 'fmo22',      v: 'FMO22',      n: 21, label: 'FMO 2022 / 3 класс' },
   { id: 'fiso26',     v: 'FISO26',     n: 25, label: 'FISO 2026 / 3–4 класс' },
+  { id: 'fisoiq',     v: 'FISOIQ',     n: 10, label: 'FISO IQ / 3–4 класс' },
   { id: 'gjmat24g3',  v: 'GJMAT24G3',  n: 25, label: 'GJMAT 2024 / 3 класс' },
   { id: 'gjmat24g4',  v: 'GJMAT24G4',  n: 25, label: 'GJMAT 2024 / 4 класс' },
   { id: 'mathxcel24', v: 'MATHXCEL24', n: 25, label: 'MathXCEL 2024 / 3 класс' }
@@ -212,7 +213,8 @@ function checkPapers() {
       R.sections.forEach((sec, k) => {
         const last = k === R.sections.length - 1;
         const to = last || sec.n == null ? data.questions.length : at + sec.n;
-        calc += (to - at) * (sec.ok || 0);
+        // задача со `skip` в счёт не идёт — и в максимум тоже (FISO IQ №2)
+        for (let i = at; i < to; i++) if (!data.questions[i].skip) calc += sec.ok || 0;
         for (let i = at; i < to && i < data.questions.length; i++) {
           if (sec.type && data.questions[i].type !== sec.type) {
             errors.push(`${where} #${i + 1}: тип «${data.questions[i].type}», ` +

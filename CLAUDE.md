@@ -53,7 +53,7 @@ python tools/verify.py        # пересчитать ответы через s
   хранится раздельно (localStorage), смешивать нельзя.
 - `data/dayNN.js`, `data/examN.js` — 3 класс; `data/g2/` — 2 класс
   (переменные с приставкой `G2`).
-- `data/sasmo2*.js`, `data/amo2*.js`, `data/fmo22.js`, `data/fiso26.js`,
+- `data/sasmo2*.js`, `data/amo2*.js`, `data/fmo22.js`, `data/fiso26.js`, `data/fisoiq.js`,
   `data/gjmat24g{3,4}.js`, `data/mathxcel24.js` —
   прошлые олимпиады; каталог работ — `window.PAPERS` в `assets/paper.js`,
   страница — `paper.html?p=<id>`.
@@ -79,7 +79,7 @@ python tools/verify.py        # пересчитать ответы через s
   №21). Старая запись `split` + `a`/`b` тоже понимается. Проверки —
   разделы 12 и 13 в `build/uitest.js`.
 - **Задачи без ответа** помечены `skip` и в счёт не идут: SASMO 2024 №13 и
-  №25, SASMO 2023 №6. Если найдутся ключи — убрать `skip`, дописать `ans`,
+  №25, SASMO 2023 №6, FISO IQ №2. Если найдутся ключи — убрать `skip`, дописать `ans`,
   `hint`, `ex` и поправить `max` в каталоге.
 - `build/check.js` падает, если у задачи не нашлась теория — новую тему
   надо добавить в `assets/theory.js`.

@@ -105,6 +105,7 @@ function visibleCards(doc) {
 
 function answerAll(window, doc, quiz) {
   quiz.Q.forEach((q, i) => {
+    if (q.skip) return;          // ответа нет — и отвечать некуда
     if (q.type === 'mcq') {
       doc.getElementById('o' + i + '_' + q.ans).click();
     } else {
@@ -906,6 +907,34 @@ if (!fs.existsSync(path.join(ROOT, 'sasmo-month.html'))) {
     .concat(['a', 'b', 'c', 'd'].map(s => 'img/fiso/sample/q06' + s + '.png'));
   const missing = imgs.filter(f => !fs.existsSync(path.join(ROOT, f)));
   ok(missing.length === 0, 'fiso26: нет файлов картинок: ' + missing.join(', '));
+}
+
+/* --------------- 13b2. FISO IQ: десять задач, одна без ответа -------------- */
+
+{
+  const w = boot(1400);
+  w.eval(fs.readFileSync(path.join(ROOT, 'assets/paper.js'), 'utf8'));
+  w.eval(fs.readFileSync(path.join(ROOT, 'data/fisoiq.js'), 'utf8'));
+  const data = w.FISOIQ;
+  ok(data.questions.length === 10, 'fisoiq: в работе должно быть 10 задач');
+  ok(w.SASMO_PAPER.byId('fisoiq').max === 36, 'fisoiq: в каталоге максимум должен быть 36');
+  w.document.getElementById('box').innerHTML = '';
+  w.localStorage.clear();
+  w.SASMO.usePlan({ keys: w.SASMO_PAPER.keys('dima'), hubHref: 'index.html',
+                    errorsHref: 'errors.html?who=dima' });
+  const quiz = w.SASMO.run({
+    mount: w.document.getElementById('box'), questions: data.questions,
+    mode: 'exam', setId: 'fisoiq', rules: data.rules, minutes: 20
+  });
+  answerAll(w, w.document, quiz);
+  w.document.getElementById('finishBtn').click();
+  const score = w.document.getElementById('fs').textContent;
+  ok(score === '36 / 36', 'fisoiq: за всё верное должно быть 36 / 36, а вышло ' + score);
+  ok(w.document.querySelectorAll('#o2_2 img').length === 1, 'fisoiq #3: вариант C должен быть картинкой');
+  const imgs = data.questions.map(q => q.img).filter(Boolean)
+    .concat(['a', 'b', 'c', 'd'].map(s => 'img/fiso/iq/q03' + s + '.png'));
+  const missing = imgs.filter(f => !fs.existsSync(path.join(ROOT, f)));
+  ok(missing.length === 0, 'fisoiq: нет файлов картинок: ' + missing.join(', '));
 }
 
 /* --------------- 13c. GJMAT: три раздела по 2, 4 и 8 баллов ------------- */
