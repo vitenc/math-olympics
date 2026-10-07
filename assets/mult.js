@@ -544,6 +544,28 @@ window.MULT = (function () {
     }
   }
 
+  /* ---------- журнал прогресса (assets/log.js) ---------- */
+
+  // Раунд — строка в журнале, как законченный набор задач; ошибки — примеры
+  function logRound(done, ok, r) {
+    var log = window.SASMO_LOG;
+    if (!log || !log.enabled() || (window.I18N && window.I18N.isDemo && window.I18N.isDemo())) return;
+    var lim = LIMITS.filter(function (l) { return l.s === r.limit; })[0];
+    var wrong = [], seen = {};
+    done.forEach(function (q) {
+      if (q.ms >= 0 || seen[key(q.a, q.b)]) return;
+      seen[key(q.a, q.b)] = 1;
+      wrong.push(q.a + '×' + q.b + (q.late ? ' (не успел)' : ''));
+    });
+    var spent = done.reduce(function (s, q) { return s + (q.ms >= 0 ? q.ms : r.limit * 1000); }, 0) / 1000;
+    log.done({
+      setId: 'mult', grade: 2,
+      title: 'Таблица умножения · ' + (lim ? lim.name : r.limit + ' с'),
+      mode: 'mult', ok: ok, no: done.length - ok, total: done.length,
+      spent: spent, wrong: wrong
+    });
+  }
+
   /* ---------- итог раунда ---------- */
 
   function renderResult() {
@@ -563,6 +585,7 @@ window.MULT = (function () {
                      avg: Math.round(avg), kind: run.kind });
     if (st.rounds.length > 30) st.rounds = st.rounds.slice(-30);
     save(st);
+    logRound(done, okList.length, run);
 
     // Трудные — с ошибкой или «не успел»; медленные — верно, но дольше 3 с
     var trouble = [], slowOnes = [], seen = {};

@@ -165,8 +165,8 @@ var REPORT_CSS_ = [
   '.row .tt{font-weight:600;overflow:hidden;text-overflow:ellipsis}',
   '.kind{display:inline-block;font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px;margin-right:6px;vertical-align:1px}',
   '.k-day{background:var(--accent-soft);color:var(--accent)}.k-exam{background:var(--mid-soft);color:var(--mid)}',
-  '.k-paper{background:#f3e8ff;color:#7c3aed}.k-assess{background:var(--good-soft);color:var(--good)}.k-other{background:var(--soft);color:var(--muted)}',
-  '@media (prefers-color-scheme:dark){.k-paper{background:#2a1d40;color:#c4a2ff}}',
+  '.k-mult{background:#e0f7f5;color:#0c8599}.k-paper{background:#f3e8ff;color:#7c3aed}.k-assess{background:var(--good-soft);color:var(--good)}.k-other{background:var(--soft);color:var(--muted)}',
+  '@media (prefers-color-scheme:dark){.k-paper{background:#2a1d40;color:#c4a2ff}.k-mult{background:#12302e;color:#63e6be}}',
   '.res{display:flex;flex-direction:column;gap:4px}',
   '.res .txt{font-size:13px;display:flex;justify-content:space-between;gap:6px}',
   '.res .txt b{font-weight:700}',
@@ -185,7 +185,8 @@ var REPORT_CSS_ = [
 /* Страница отчёта целиком. Функция переносится в браузер как текст
    (toString), поэтому снаружи она ничего не видит — только DATA. */
 function reportApp_(DATA) {
-  var KIND = { day: 'Программа', exam: 'Экзамен', paper: 'Олимпиада', assess: 'Замер', other: 'Другое' };
+  var KIND = { day: 'Программа', exam: 'Экзамен', paper: 'Олимпиада', assess: 'Замер',
+              mult: 'Умножение', other: 'Другое' };
   var MON = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа',
              'сентября', 'октября', 'ноября', 'декабря'];
   var MON_S = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
@@ -194,7 +195,8 @@ function reportApp_(DATA) {
 
   var rows = DATA.rows.map(function (r) {
     r.kind = /^(day|rev)\d/.test(r.set) ? 'day' : /^exam\d/.test(r.set) ? 'exam'
-           : (r.set === 'pre' || r.set === 'post') ? 'assess' : r.set === 'test' ? 'other' : 'paper';
+           : (r.set === 'pre' || r.set === 'post') ? 'assess' : r.set === 'mult' ? 'mult'
+           : r.set === 'test' ? 'other' : 'paper';
     r.name = (r.title || r.set).replace(/\s+—\s+Olympiad Sprint$/, '');
     // у трёх пробных экзаменов заголовок страницы одинаковый — нужен номер
     if (r.kind === 'exam') r.name = 'Пробный экзамен ' + r.set.replace(/\D/g, '');
@@ -369,6 +371,7 @@ function reportApp_(DATA) {
   function topics(list) {
     var c = {};
     list.forEach(function (r) {
+      if (r.kind === 'mult') return;
       r.wrong.forEach(function (w) {
         var tp = w.replace(/^№\d+\s*/, '').trim();
         if (tp) c[tp] = (c[tp] || 0) + 1;
@@ -383,6 +386,26 @@ function reportApp_(DATA) {
              '<span class="track"><b style="width:' + Math.round(a[1] / max * 100) + '%"></b></span>' +
              '<span class="n">' + a[1] + '</span></div>';
     }).join('');
+  }
+
+  // Таблица умножения: какие примеры чаще всего не вспоминаются
+  function multFacts(list) {
+    var c = {};
+    list.forEach(function (r) {
+      if (r.kind !== 'mult') return;
+      r.wrong.forEach(function (w) {
+        var f = w.replace(/\s*\(.*\)$/, '').trim();
+        if (f) c[f] = (c[f] || 0) + 1;
+      });
+    });
+    var arr = Object.keys(c).map(function (k) { return [k, c[k]]; })
+      .sort(function (a, b) { return b[1] - a[1]; }).slice(0, 12);
+    if (!arr.length) return '';
+    return '<div class="card" style="margin-bottom:14px"><h3>Трудные примеры таблицы умножения <small>' +
+      periodWord() + '</small></h3><div class="errs">' + arr.map(function (a) {
+        return '<span class="chip" style="font-size:13px;padding:3px 9px">' + esc(a[0]) +
+               (a[1] > 1 ? ' · ' + a[1] : '') + '</span>';
+      }).join('') + '</div></div>';
   }
 
   function papers(list) {
@@ -477,7 +500,7 @@ function reportApp_(DATA) {
       kpi(sk + (sk ? ' 🔥' : ''), 'дней подряд', 'рекорд — ' + best) +
       kpi(st.sets, 'наборов ' + periodWord(), st.days + ' ' + plural(st.days, 'день', 'дня', 'дней') + ' с занятиями') +
       kpi(pctTxt(st.acc), 'верных ответов', periodWord(), lvl(st.acc)) +
-      kpi(st.min ? dur(st.min) : '—', 'время на экзаменах', 'считается только по работам с таймером') +
+      kpi(st.min ? dur(st.min) : '—', 'время с таймером', 'экзамены, олимпиады, таблица умножения') +
       '</div>' +
       '<div class="grid g2" style="margin-bottom:14px">' +
         '<div class="card"><h3>Календарь занятий <small>16 недель</small></h3>' + heatmap(all, 16) + '</div>' +
@@ -487,9 +510,12 @@ function reportApp_(DATA) {
         '<div class="card"><h3>Где ошибается <small>темы ' + periodWord() + '</small></h3>' + topics(list) + '</div>' +
         '<div class="card"><h3>Олимпиады и экзамены <small>лучший результат</small></h3>' + papers(all) + '</div>' +
       '</div>' +
+      multFacts(list) +
       '<div class="card"><h3>Журнал <small>' + periodWord() + '</small></h3>' +
         '<div style="margin:-2px 0 10px">' + seg('kind', [['all', 'Все'], ['day', 'Программа'], ['exam', 'Экзамены'],
-          ['paper', 'Олимпиады'], ['assess', 'Замер']], S.kind) + '</div>' + journal(list) + '</div>';
+          ['paper', 'Олимпиады'], ['assess', 'Замер'], ['mult', 'Умножение']].filter(function (k) {
+            return k[0] === 'all' || k[0] === S.kind || all.some(function (r) { return r.kind === k[0]; });
+          }), S.kind) + '</div>' + journal(list) + '</div>';
   }
 
   function render() {

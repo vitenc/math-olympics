@@ -147,8 +147,17 @@
       var el = e.target.closest('[data-logwho]');
       if (!el) return;
       e.preventDefault();
-      SASMO_LOG.setDeviceWho(el.getAttribute('data-logwho'));
-      SASMO.reload();
+      var name = el.getAttribute('data-logwho');
+      SASMO_LOG.setDeviceWho(name);
+      // У каждого ребёнка свой класс — хаб открывается сразу на нём. Переходим
+      // вкладкой класса: ?g= в адресе перебил бы запомненный выбор. В сборке
+      // класс один и вкладок нет — там просто перезагружаемся.
+      var g = null;
+      Object.keys(window.SOLVERS || {}).forEach(function (k) {
+        if (SOLVERS[k].name === name && SOLVERS[k].grade) g = SOLVERS[k].grade;
+      });
+      var tab = g && !BUNDLE ? document.querySelector('#grades [data-g="' + g + '"]') : null;
+      if (tab) tab.click(); else SASMO.reload();
     });
   }
 

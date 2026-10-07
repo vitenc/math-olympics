@@ -6208,10 +6208,12 @@ window.SASMO = (function () {
   /* Кто решает. Имя показывается в шапке, чтобы ребёнок не открыл чужую
      страницу; `paper` — куда возвращает журнал ошибок. Работ теперь много,
      а журнал у решающего один на все, поэтому возвращает он не на страницу
-     одной работы, а в раздел олимпиад на хабе. */
+     одной работы, а в раздел олимпиад на хабе. `grade` — класс, на который
+     хаб переключается, когда ребёнка выбирают для устройства. */
   window.SOLVERS = {
-    dima:   { name: 'Дима',   paper: 'index.html#papers' },
-    bogdan: { name: 'Богдан', paper: 'index.html#papers' }
+    dima:   { name: 'Дима',   grade: 3, paper: 'index.html#papers' },
+    bogdan: { name: 'Богдан', grade: 3, paper: 'index.html#papers' },
+    anya:   { name: 'Аня',    grade: 2, paper: 'index.html#papers' }
   };
 
   /* Каталог отдельных работ. Хаб строит из него раздел «Олимпиады прошлых
@@ -6626,8 +6628,17 @@ window.SASMO_BUNDLE.pages.index = { title: "Grade 3 — подготовка з�
       var el = e.target.closest('[data-logwho]');
       if (!el) return;
       e.preventDefault();
-      SASMO_LOG.setDeviceWho(el.getAttribute('data-logwho'));
-      SASMO.reload();
+      var name = el.getAttribute('data-logwho');
+      SASMO_LOG.setDeviceWho(name);
+      // У каждого ребёнка свой класс — хаб открывается сразу на нём. Переходим
+      // вкладкой класса: ?g= в адресе перебил бы запомненный выбор. В сборке
+      // класс один и вкладок нет — там просто перезагружаемся.
+      var g = null;
+      Object.keys(window.SOLVERS || {}).forEach(function (k) {
+        if (SOLVERS[k].name === name && SOLVERS[k].grade) g = SOLVERS[k].grade;
+      });
+      var tab = g && !BUNDLE ? document.querySelector('#grades [data-g="' + g + '"]') : null;
+      if (tab) tab.click(); else SASMO.reload();
     });
   }
 
