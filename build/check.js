@@ -170,6 +170,8 @@ const PAPERS = [
   { id: 'amo23',      v: 'AMO23',      n: 25, label: 'AMO 2023 / 3 класс' },
   { id: 'fmo22',      v: 'FMO22',      n: 21, label: 'FMO 2022 / 3 класс' },
   { id: 'fiso26',     v: 'FISO26',     n: 25, label: 'FISO 2026 / 3–4 класс' },
+  { id: 'gjmat24g3',  v: 'GJMAT24G3',  n: 25, label: 'GJMAT 2024 / 3 класс' },
+  { id: 'gjmat24g4',  v: 'GJMAT24G4',  n: 25, label: 'GJMAT 2024 / 4 класс' },
   { id: 'mathxcel24', v: 'MATHXCEL24', n: 25, label: 'MathXCEL 2024 / 3 класс' }
 ];
 

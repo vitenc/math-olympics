@@ -37,7 +37,9 @@
        set      — data/<set>.js
        varName  — окно, в которое набор себя кладёт
        minutes  — сколько идёт работа
-       grade    — для какого класса работа (хаб показывает только свой)
+       grade    — для какого класса работа
+       shelf    — на хабе какого класса её показать, если не на своём
+                  (работа 4 класса «на вырост» стоит у третьего)
        max      — максимум баллов, нужен хабу для строчки результата         */
   window.PAPERS = [
     { id: 'sasmo25',    olympiad: 'SASMO', year: 2025, grade: 3,
@@ -68,6 +70,14 @@
       set: 'fiso26',     varName: 'FISO26',     minutes: 60, max: 100,
       note: '25 задач · 60 минут · примерные задания 3–4 класса, штрафов нет',
       en: { note: '25 problems · 60 minutes · sample paper for Grades 3–4, no penalties' } },
+    { id: 'gjmat24g3',  olympiad: 'GJMAT', year: 2024, grade: 3,
+      set: 'gjmat24g3',  varName: 'GJMAT24G3',  minutes: 90, max: 100,
+      note: '25 задач · 90 минут · три раздела по 2, 4 и 8 баллов, штрафов нет',
+      en: { note: '25 problems · 90 minutes · three sections worth 2, 4 and 8 points, no penalties' } },
+    { id: 'gjmat24g4',  olympiad: 'GJMAT', year: 2024, grade: 4, shelf: 3,
+      set: 'gjmat24g4',  varName: 'GJMAT24G4',  minutes: 90, max: 100,
+      note: 'Работа 4 класса, на вырост · 25 задач · 90 минут · по 2, 4 и 8 баллов',
+      en: { note: 'Grade 4 paper, a stretch · 25 problems · 90 minutes · 2, 4 and 8 points' } },
     { id: 'mathxcel24', olympiad: 'MathXCEL', year: 2024, grade: 3,
       set: 'mathxcel24', varName: 'MATHXCEL24', minutes: 80, max: 55,
       note: '25 задач · 80 минут · максимум 55 баллов, штрафов нет',

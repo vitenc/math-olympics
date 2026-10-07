@@ -316,7 +316,9 @@ if (!fs.existsSync(path.join(ROOT, 'sasmo-month.html'))) {
   const tpl = path.join(ROOT, 'build', 'template.html');
   ok(!fs.existsSync(tpl), 'build/template.html со своей копией движка больше не нужен');
   const html = fs.readFileSync(path.join(ROOT, 'sasmo-month.html'), 'utf8');
-  ok(html.indexOf(fs.readFileSync(path.join(ROOT, 'assets/quiz.js'), 'utf8').slice(0, 400)) >= 0,
+  // на Windows рабочая копия с CRLF, а сборка — с LF: сравниваем без CR
+  ok(html.replace(/\r/g, '').indexOf(fs.readFileSync(path.join(ROOT, 'assets/quiz.js'), 'utf8')
+         .replace(/\r/g, '').slice(0, 400)) >= 0,
      'в сборке должен лежать assets/quiz.js как есть');
 
   const w = bundle('#/day/2', (w) => w.localStorage.setItem('sasmo.view', 'step'));
@@ -904,6 +906,53 @@ if (!fs.existsSync(path.join(ROOT, 'sasmo-month.html'))) {
     .concat(['a', 'b', 'c', 'd'].map(s => 'img/fiso/sample/q06' + s + '.png'));
   const missing = imgs.filter(f => !fs.existsSync(path.join(ROOT, f)));
   ok(missing.length === 0, 'fiso26: нет файлов картинок: ' + missing.join(', '));
+}
+
+/* --------------- 13c. GJMAT: три раздела по 2, 4 и 8 баллов ------------- */
+
+/* У GJMAT все 25 задач с пятью вариантами: 1–10 по 2, 11–20 по 4, 21–25 по 8.
+   Работа 4 класса стоит на хабе третьего (поле shelf). */
+{
+  const w = boot(1400);
+  w.eval(fs.readFileSync(path.join(ROOT, 'assets/paper.js'), 'utf8'));
+  ok(w.SASMO_PAPER.byId('gjmat24g4').shelf === 3, 'gjmat24g4: должна стоять на хабе 3 класса');
+  ['gjmat24g3', 'gjmat24g4'].forEach(id => {
+    w.eval(fs.readFileSync(path.join(ROOT, 'data/' + id + '.js'), 'utf8'));
+    const data = w[id.toUpperCase()];
+    ok(data.questions.length === 25, id + ': в работе должно быть 25 задач');
+    ok(data.questions.every(q => q.opts.length === 5), id + ': у каждой задачи пять вариантов');
+
+    const start = (answer) => {
+      w.document.getElementById('box').innerHTML = '';
+      w.localStorage.clear();
+      w.SASMO.usePlan({ keys: w.SASMO_PAPER.keys('dima'), hubHref: 'index.html',
+                        errorsHref: 'errors.html?who=dima' });
+      const quiz = w.SASMO.run({
+        mount: w.document.getElementById('box'), questions: data.questions,
+        mode: 'exam', setId: id, rules: data.rules, minutes: 90
+      });
+      answer(quiz);
+      w.document.getElementById('finishBtn').click();
+      return { quiz, fs: w.document.getElementById('fs').textContent };
+    };
+
+    let r = start(quiz => answerAll(w, w.document, quiz));
+    ok(r.fs === '100 / 100', id + ': за всё верное должно быть 100 / 100, а вышло ' + r.fs);
+    ok(r.quiz.sectionOf(9) === 0 && r.quiz.sectionOf(10) === 1 && r.quiz.sectionOf(20) === 2,
+       id + ': задачи разошлись по разделам неверно');
+
+    // неверный ответ в последней задаче — минус 8, без штрафа
+    r = start(quiz => {
+      answerAll(w, w.document, quiz);
+      const q = data.questions[24];
+      w.document.getElementById('o24_' + ((q.ans + 1) % 5)).click();
+    });
+    ok(r.fs === '92 / 100', id + ': неверный ответ в №25 должен стоить 8 баллов, а вышло ' + r.fs);
+
+    const missing = data.questions.map(q => q.img).filter(Boolean)
+      .filter(f => !fs.existsSync(path.join(ROOT, f)));
+    ok(missing.length === 0, id + ': нет файлов картинок: ' + missing.join(', '));
+  });
 }
 
 /* ------------- 14. «Мне непонятно — объясни»: теория к задаче -------- */

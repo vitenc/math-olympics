@@ -224,7 +224,7 @@
     return out.length ? '<div class="dres">' + out.join(' · ') + '</div>' : '';
   }
 
-  var papers = BUNDLE ? [] : (window.PAPERS || []).filter(function (p) { return p.grade === grade; });
+  var papers = BUNDLE ? [] : (window.PAPERS || []).filter(function (p) { return (p.shelf || p.grade) === grade; });
   if (papers.length) {
     document.getElementById('papers').innerHTML =
       '<div class="week"><h3>' + t('Олимпиады прошлых лет') +

@@ -54,7 +54,7 @@ python tools/verify.py        # пересчитать ответы через s
 - `data/dayNN.js`, `data/examN.js` — 3 класс; `data/g2/` — 2 класс
   (переменные с приставкой `G2`).
 - `data/sasmo2*.js`, `data/amo2*.js`, `data/fmo22.js`, `data/fiso26.js`,
-  `data/mathxcel24.js` —
+  `data/gjmat24g{3,4}.js`, `data/mathxcel24.js` —
   прошлые олимпиады; каталог работ — `window.PAPERS` в `assets/paper.js`,
   страница — `paper.html?p=<id>`.
 - `assets/quiz.js` — движок; `assets/theory.js` — теория по темам.
