@@ -126,6 +126,8 @@
 
     var whoTag = document.getElementById('who');
     if (whoTag) whoTag.textContent = solver.name;
+    // в журнал прогресса работа уходит под именем решающего, а не устройства
+    if (window.SASMO_LOG) window.SASMO_LOG.setWho(solver.name);
 
     var timer = document.getElementById('timer');
     if (timer) timer.textContent = '⏱ ' + window.SASMO.mmss(minutes * 60);

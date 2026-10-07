@@ -81,6 +81,8 @@
 <script src="assets/cloud.js"></script>
 <script src="assets/plan.js"></script>
 <script src="assets/plan2.js"></script>
+<script src="assets/log-config.js"></script>
+<script src="assets/log.js"></script>
 <script src="assets/quiz.js"></script>
 <script src="assets/paper.js"></script>
 <script src="assets/demo.js"></script>
@@ -124,6 +126,30 @@
     document.getElementById('stats').insertAdjacentHTML('beforebegin',
       '<div class="note warm"><h3>' + t('Прогресс не будет сохраняться') + '</h3>' +
       '<p>' + t('Браузер не разрешает этой странице хранить данные — так бывает в режиме инкогнито или при запрете данных сайтов. Задачи решать можно, но галочки и журнал ошибок пропадут после закрытия вкладки.') + '</p></div>');
+  }
+
+  /* Журнал прогресса (assets/log.js): программа на устройстве одна на класс,
+     и кто за ним занимается, страница не знает — спрашиваем один раз. */
+  if (window.SASMO_LOG && SASMO_LOG.enabled() && !I18N.isDemo()) {
+    var logWho = SASMO_LOG.deviceWho();
+    var names = Object.keys(window.SOLVERS || {}).map(function (k) { return SOLVERS[k].name; });
+    var whoBtns = names.map(function (n) {
+      return '<button class="btn" data-logwho="' + n + '">' + n + '</button>';
+    }).join(' ');
+    document.getElementById('stats').insertAdjacentHTML('beforebegin', logWho
+      ? '<div class="dsk" id="logWho" style="text-align:right">' +
+          t('Занимается: {n}', { n: logWho }) +
+          ' · <a href="#" data-logwho="">' + t('сменить') + '</a></div>'
+      : '<div class="note warm" id="logWho"><h3>' + t('Кто занимается на этом устройстве?') + '</h3>' +
+          '<p>' + t('Результаты будут уходить в журнал прогресса под этим именем.') + '</p>' +
+          '<div>' + whoBtns + '</div></div>');
+    document.getElementById('logWho').addEventListener('click', function (e) {
+      var el = e.target.closest('[data-logwho]');
+      if (!el) return;
+      e.preventDefault();
+      SASMO_LOG.setDeviceWho(el.getAttribute('data-logwho'));
+      SASMO.reload();
+    });
   }
 
   var doneCount = 0;

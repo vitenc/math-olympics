@@ -60,6 +60,8 @@ python tools/verify.py        # пересчитать ответы через s
 - `assets/quiz.js` — движок; `assets/theory.js` — теория по темам.
 - `assess.html` + `data/assess-g{2,3}{a,b}.js` — замер «до и после» (формы
   A/B парные: править задачу — править и её пару); `report.html` — отчёт.
+- `assets/log.js` — журнал прогресса в Google Таблицу (Apps Script
+  `tools/progress-sheet/`), выключен, пока пуст `assets/log-config.js`.
 - `assets/cloud.js` — облако (Supabase), выключено, пока пуст
   `assets/cloud-config.js`; `account.html`, `teacher.html`, `supabase/`.
 - `landing.html`, `onepager.html` — для партнёров, на английском.

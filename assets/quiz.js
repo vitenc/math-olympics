@@ -1190,6 +1190,31 @@ window.SASMO = (function () {
       }
     });
     putRecord(setId, rec);
+    this.logDone(rec);
+  };
+
+  /* Строка в журнал прогресса (assets/log.js) — чтобы взрослый видел, что
+     решено на этом устройстве. Без настройки журнала ничего не уходит. */
+  Quiz.prototype.logDone = function (rec) {
+    var log = window.SASMO_LOG;
+    if (!log || !log.enabled() || I.isDemo()) return;
+    var setId = this.cfg.setId;
+    var paper = window.SASMO_PAPER && window.SASMO_PAPER.byId(setId);
+    var Q = this.Q;
+    var wrong = [];
+    Q.forEach(function (q, i) {
+      var a = rec.answers && rec.answers[i];
+      if (a && a.ok === false) wrong.push('№' + (i + 1) + (q.topic ? ' ' + q.topic : ''));
+    });
+    log.done({
+      setId: setId,
+      grade: paper ? paper.grade : (/\bg2\b/.test(PROGRESS_KEY) ? 2 : 3),
+      title: document.title,
+      mode: this.cfg.mode,
+      ok: rec.ok, no: rec.no, total: rec.total,
+      score: rec.score, max: rec.max, spent: rec.spent,
+      wrong: wrong
+    });
   };
 
   Quiz.prototype.showPracticeResult = function () {

@@ -28,7 +28,7 @@ const MIME = {
 
 /* Скрипты в том порядке, в каком их подключают страницы. */
 const ASSETS = ['i18n.js', 'plan.js', 'plan2.js', 'fig.js', 'theory.js',
-                'quiz.js', 'paper.js', 'demo.js'];
+                'log-config.js', 'log.js', 'quiz.js', 'paper.js', 'demo.js'];
 
 /* Страницы, которые живут в сборке. Остальные (paper.html, mult.html) —
    только на сайте: хаб в сборке их не показывает. */

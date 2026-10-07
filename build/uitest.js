@@ -984,6 +984,48 @@ if (!fs.existsSync(path.join(ROOT, 'sasmo-month.html'))) {
   });
 }
 
+/* ------------- 13d. Журнал прогресса: строка на каждый законченный набор -- */
+
+/* assets/log.js: без адреса молчит; с адресом после «Завершить» уходит одна
+   строка с именем решающего, счётом и номерами задач с ошибками. */
+{
+  const w = boot(1400);
+  const sent = [];
+  w.fetch = (url, opts) => { sent.push({ url, body: JSON.parse(opts.body) }); return Promise.resolve({}); };
+  w.eval(fs.readFileSync(path.join(ROOT, 'assets/log.js'), 'utf8'));
+  ok(!w.SASMO_LOG.enabled(), 'журнал: без адреса в log-config.js должен быть выключен');
+
+  w.SASMO_LOG_CONFIG = { url: 'https://example.test/exec' };
+  w.eval(fs.readFileSync(path.join(ROOT, 'assets/log.js'), 'utf8'));
+  w.eval(fs.readFileSync(path.join(ROOT, 'assets/paper.js'), 'utf8'));
+  w.eval(fs.readFileSync(path.join(ROOT, 'data/gjmat24g3.js'), 'utf8'));
+  ok(w.SASMO_LOG.enabled(), 'журнал: с адресом должен включиться');
+
+  w.localStorage.clear();
+  w.SASMO.usePlan({ keys: w.SASMO_PAPER.keys('dima'), hubHref: 'index.html',
+                    errorsHref: 'errors.html?who=dima' });
+  w.SASMO_LOG.setWho('Дима');
+  const data = w.GJMAT24G3;
+  const quiz = w.SASMO.run({
+    mount: w.document.getElementById('box'), questions: data.questions,
+    mode: 'exam', setId: 'gjmat24g3', rules: data.rules, minutes: 90
+  });
+  answerAll(w, w.document, quiz);
+  w.document.getElementById('o0_0').click();               // №1 — мимо
+  w.document.getElementById('finishBtn').click();
+
+  ok(sent.length === 1, 'журнал: после «Завершить» должна уйти ровно одна строка, а ушло ' + sent.length);
+  const row = sent[0] && sent[0].body;
+  if (row) {
+    ok(row.who === 'Дима' && row.set === 'gjmat24g3' && row.grade === 3,
+       'журнал: в строке не тот ученик, набор или класс: ' + JSON.stringify([row.who, row.set, row.grade]));
+    ok(row.score === 98 && row.max === 100 && row.ok === 24 && row.total === 25,
+       'журнал: в строке не тот счёт: ' + JSON.stringify([row.score, row.max, row.ok, row.total]));
+    ok(row.wrong.length === 1 && /^№1 /.test(row.wrong[0]),
+       'журнал: в строке должна быть ошибка в №1, а там ' + JSON.stringify(row.wrong));
+  }
+}
+
 /* ------------- 14. «Мне непонятно — объясни»: теория к задаче -------- */
 
 {
